@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SWPPL – EPC Monitor v7 | 140 MW Hybrid</title>
@@ -9,6 +10,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+
+
 /* ══════════════ DESIGN SYSTEM (v5 base) ══════════════ */
 :root{
   --bg:#07101f;--bg2:#0b1626;--bg3:#0f1d30;
@@ -276,9 +279,76 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 /* LAND PROGRESS BAND */
 .land-band{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:5px;}
 @media print{#sb,#tb,#ft,.bk,.btn{display:none!important;}#mn{margin-left:0!important;}.view{display:block!important;}}
+
+/* ===== INTRO 3D ===== */
+#intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #000;
+}
+
+#three-canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.intro-content {
+  position: absolute;
+  top: 40%;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+}
+
+.company-name {
+  font-size: 46px;
+  font-weight: 800;
+  text-shadow: 0 0 30px #00c8ff;
+}
+
+.tagline {
+  font-size: 16px;
+}
+
+#enter-btn {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,#00c8ff,#00ffb3);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  cursor: pointer;
+}
+
+.fade-out {
+  animation: fadeOut 1s forwards;
+}
+@keyframes fadeOut {
+  to { opacity: 0; visibility: hidden; }
+}
 </style>
 </head>
 <body>
+
+<!-- 🌐 3D INTRO START -->
+<div id="intro-overlay">
+  <canvas id="three-canvas"></canvas>
+
+  <audio id="bg-music" src="music.mp3"></audio>
+  <audio id="voiceover" src="voice.mp3"></audio>
+
+  <div class="intro-content">
+    <h1 class="company-name">Continuum Green Energy</h1>
+    <p class="tagline">Engineering the Future of Sustainable Power</p>
+  </div>
+
+  <button id="enter-btn">Enter Experience →</button>
+</div>
+<!-- 🌐 3D INTRO END -->
 <div id="ldr"></div>
 
 <!-- LOGIN -->
@@ -1939,6 +2009,59 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('today-date').textContent=ds;document.getElementById('ft-date').textContent=ds;
   rndrHome();
 });
+// ===== 3D INTRO ENGINE =====
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById("three-canvas"), alpha:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// Globe
+const globe = new THREE.Mesh(
+  new THREE.SphereGeometry(2,64,64),
+  new THREE.MeshBasicMaterial({wireframe:true,color:0x00c8ff})
+);
+scene.add(globe);
+
+// Particles
+const geometry = new THREE.BufferGeometry();
+const count = 500;
+const arr = new Float32Array(count*3);
+for(let i=0;i<count*3;i++){ arr[i]=(Math.random()-0.5)*10; }
+geometry.setAttribute('position', new THREE.BufferAttribute(arr,3));
+
+const particles = new THREE.Points(
+  geometry,
+  new THREE.PointsMaterial({size:0.02,color:0x00ffb3})
+);
+scene.add(particles);
+
+camera.position.z = 5;
+
+function animate(){
+  requestAnimationFrame(animate);
+  globe.rotation.y += 0.002;
+  particles.rotation.y += 0.001;
+  renderer.render(scene,camera);
+}
+animate();
+
+// AUDIO
+const music = document.getElementById("bg-music");
+const voice = document.getElementById("voiceover");
+
+document.body.addEventListener("click", ()=>{
+  music.play();
+  setTimeout(()=>voice.play(),1000);
+},{once:true});
+
+// ENTER BUTTON
+document.getElementById("enter-btn").onclick = ()=>{
+  document.getElementById("intro-overlay").classList.add("fade-out");
+
+  setTimeout(()=>{
+    document.getElementById("intro-overlay").style.display="none";
+  },1000);
+};
 </script>
 </body>
 </html>
