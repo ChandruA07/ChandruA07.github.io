@@ -1,0 +1,16 @@
+<div class="view" id="view-landwtg">
+  <div class="bk" onclick="nav('land')">← Land Dashboard</div>
+  <div class="ph"><div class="pht" style="color:var(--wtg)">📍 WTG Land Management</div><div class="phs">26 locations | Each = 1.92% of WTG Land | 10 stages each = 100%</div></div>
+  <div class="kr" id="wtgland-kr"></div>
+  <div class="pnl"><div class="ph2"><div class="pt">📊 Stage Completion (all 26 locations)</div></div><div class="ch h240"><canvas id="ch-wtgland-stages"></canvas></div></div>
+  <div class="pnl">
+    <div class="ph2">
+      <div class="pt">📍 All 26 WTG Land Locations</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn bta bts" onclick="openAddWtgLand()">➕ Add Location</button>
+        <button class="btn bts" onclick="reqLogin('wtg',()=>openWtgLandProg())">📊 Update Progress</button>
+      </div>
+    </div>
+    <div class="tsc"><table class="tbl" id="wtgland-tbl"></table></div>
+  </div>
+</div>
