@@ -1,0 +1,24 @@
+<div class="view" id="view-pod" style="position:relative;">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <!-- Logo top-right injected by rndrPod via _pageLogoTR() -->
+  <div class="ph">
+    <div class="pht" style="color:var(--pod);display:flex;align-items:center;gap:8px;">
+      📋 POD – Plan of Day &amp; Daily Entry
+    </div>
+    <div class="phs">POD = Planned work (no login) | Today's Progress = Actual work (login required from module pages)</div>
+  </div>
+  <div class="stabs">
+    <div class="stb on-s" id="ptb-s" onclick="podTab('s')">
+      <span id="ptb-sol-icon"></span> Solar
+    </div>
+    <div class="stb" id="ptb-w" onclick="podTab('w')">
+      <span id="ptb-wtg-icon"></span> WTG
+    </div>
+    <div class="stb" id="ptb-b" onclick="podTab('b')">
+      <span id="ptb-bop-icon"></span> BOP
+    </div>
+    <!-- Land tab hidden per requirement -->
+    <div class="stb" id="ptb-l" style="display:none;" onclick="podTab('l')">Land</div>
+  </div>
+  <div id="pod-ct"></div>
+</div>

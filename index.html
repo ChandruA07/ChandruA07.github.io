@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Continuum Green Energy – SWPPL 140MW Hybrid Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/page-logo.css">
+<link rel="stylesheet" href="css/advanced.css">
+</head>
+
+<body>
+
+<div id="ldr"></div>
+
+<!-- Overlays -->
+<div id="overlay-login"></div>
+<div id="overlay-modals"></div>
+
+<div id="app">
+  <div id="sidebar-mount"></div>
+  <div id="mn">
+    <div id="topbar-mount"></div>
+    <div id="ct">
+      <div id="views-mount"></div>
+    </div>
+    <div id="footer-mount"></div>
+  </div>
+</div>
+
+<!-- ✅ Firebase Compat SDK (works as regular global scripts — no module required) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<!-- ✅ App scripts — loaded in dependency order as regular scripts (NOT type="module") -->
+<!-- firebase.js MUST come first so window.firebaseDB is available to main.js -->
+<script src="js/firebase.js"></script>
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/render-home.js"></script>
+<script src="js/render-solar.js"></script>
+<script src="js/render-wtg.js"></script>
+<script src="js/render-land.js"></script>
+<script src="js/render-bop.js"></script>
+<script src="js/render-misc.js"></script>
+<script src="js/advanced.js"></script>
+<script src="js/loader.js"></script>
+<!-- main.js MUST come last — it uses DB (data.js) and firebaseDB (firebase.js) -->
+<script src="js/main.js"></script>
+
+</body>
+</html>
