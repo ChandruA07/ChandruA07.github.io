@@ -1,0 +1,16 @@
+<div class="view" id="view-solar" style="position:relative;">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--sol);display:flex;align-items:center;gap:8px;">
+      <img src="solar.png" style="height:26px;object-fit:contain;vertical-align:middle;" onerror="this.style.display='none'">
+      Solar 70.4 MW total | 6 ITCs (13.2×4 + 8.8×2)
+    </div>
+  </div>
+  <div class="kr" id="sol-kr"></div>
+  <div class="ph2" style="margin-bottom:8px;"><div class="pt">ITC Summary — Click to open detail</div></div>
+  <div class="itcg" id="itc-cards"></div>
+  <div class="pnl" id="sol-chart" style="margin-top:10px;scroll-margin-top:100px;">
+    <div class="ph2"><div class="pt">ITC Progress — C / WIP / Remaining</div></div>
+    <div class="ch h220"><canvas id="ch-sol-det"></canvas></div>
+  </div>
+</div>

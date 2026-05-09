@@ -1,0 +1,111 @@
+{
+  "rules": {
+    ".read":  "false",
+    ".write": "false",
+
+    "solar": {
+      ".read":  "true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'solar')"
+    },
+
+    "wtg": {
+      ".read":  "true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'wtg')"
+    },
+
+    "bop": {
+      ".read":  "true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'bop')"
+    },
+
+    "land": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
+    "hse": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+
+    "pod": {
+      ".read": "true",
+      "$date": {
+        ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        "$pushId": {
+          ".write":    "true",
+          ".validate": "newData.hasChildren(['module','activity','ts'])",
+          "module":   { ".validate": "newData.isString() && newData.val().matches(/^(s|w|l|b)$/)" },
+          "activity": { ".validate": "newData.isString() && newData.val().length < 200" },
+          "byName":   { ".validate": "newData.isString() && newData.val().length < 80" },
+          "ts":       { ".validate": "newData.val() <= now + 60000" },
+          "qty":      { ".validate": "newData.isNumber()" },
+          "mp":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 10000" }
+        }
+      }
+    },
+
+    "dailyProgress": {
+      ".read":  "true",
+      ".write": "true",
+      "$id": {
+        ".validate": "newData.hasChildren(['module','activity','ts'])",
+        "module":   { ".validate": "newData.isString() && newData.val().length < 30" },
+        "activity": { ".validate": "newData.isString() && newData.val().length < 200" },
+        "byName":   { ".validate": "newData.isString() && newData.val().length < 80" },
+        "ts":       { ".validate": "newData.val() <= now + 60000" }
+      }
+    },
+
+    "rowIssues": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+
+    "milestones": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'",
+      "$id": {
+        ".validate": "newData.hasChildren(['title','date','by','ts'])",
+        "title": { ".validate": "newData.isString() && newData.val().length < 200" },
+        "date":  { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "by":    { ".validate": "newData.val() === auth.uid" },
+        "ts":    { ".validate": "newData.val() <= now + 60000" }
+      }
+    },
+
+    "ganttRows": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
+    "schedule": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
+    "blockers": {
+      ".read":  "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+
+    "users": {
+      "$uid": {
+        ".read":  "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && data.exists()))",
+        "role": {
+          ".validate": "newData.isString() && newData.val().matches(/^(admin|solar|wtg|bop|viewer)$/) && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "name":  { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 80" },
+        "email": { ".validate": "newData.isString() && newData.val().length < 200" }
+      }
+    },
+
+    "audit": {
+      ".read":  "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$ts": {
+        ".write": "auth != null && !data.exists()"
+      }
+    }
+  }
+}

@@ -1,0 +1,146 @@
+<!-- ════ HOME DASHBOARD ════ -->
+<div class="view on" id="view-home">
+
+  <!-- ── HEADER ── -->
+  <div class="dash-header">
+    <div class="dash-logo">
+      <img src="continuumlogo.png" style="height:52px;object-fit:contain;" onerror="this.style.display='none'">
+    </div>
+    <div>
+      <div class="dash-title" style="color:#1565c0;font-size:23px;font-weight:800;letter-spacing:.3px;">Continuum Green Energy</div>
+      <div class="dash-sub">Shubh Wind Energy Private Limited &nbsp;|&nbsp; 140 MW Hybrid (Solar + Wind) Project – EPC Dashboard</div>
+    </div>
+    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <button class="btn bts" onclick="openScopeManager()" data-tt="Edit MW / tower counts and ITC scopes">⚙️ Scope Manager</button>
+      <div style="font-size:8px;color:var(--t3);" id="last-saved-ts">💾 Auto-save active</div>
+    </div>
+  </div>
+
+  <!-- ── STICKY SECTION NAV ── -->
+  <div class="adv-sec-nav" id="home-secnav">
+    <div class="sni act" onclick="sniClick(this,'home-kpi-row',event)">📊 KPIs</div>
+    <div class="sni"     onclick="sniClick(this,'home-chart-strip',event)">📈 Charts</div>
+    <div class="sni"     onclick="sniClick(this,'home-row3',event)">📋 POD &amp; S-Curve</div>
+    <div class="sni"     onclick="sniClick(this,'home-gantt-wrap',event)">📅 Gantt</div>
+  </div>
+
+  <!-- ── ROW 1: KPI CARDS ── -->
+  <div class="sq-kpi-row" id="home-kpi-row" style="scroll-margin-top:100px;"></div>
+
+  <!-- ── ROW 2: CHART STRIP ── -->
+  <div class="chart-strip" id="home-chart-strip" style="scroll-margin-top:100px;">
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">Solar ITCs — C/WIP/Rem</div></div>
+      <div class="ch h160"><canvas id="ch-sol-cwip"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">WTG Foundation Progress</div></div>
+      <div class="ch h160"><canvas id="ch-wtg-cwip"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">BOP Progress</div></div>
+      <div class="ch h160"><canvas id="ch-bop-prog"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">Land Progress</div></div>
+      <div class="ch h160"><canvas id="ch-land-prog"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 3: POD/Daily | S-Curve+ROW Tracker | Milestones ── -->
+  <div id="home-row3" style="display:grid;grid-template-columns:1fr 1.4fr 0.9fr;gap:10px;margin-bottom:12px;scroll-margin-top:100px;">
+    <!-- POD Summary + Daily Progress (Manpower section removed) -->
+    <div class="pnl" style="padding:10px 12px;"><div id="home-pod-dpr"></div></div>
+
+    <!-- S-Curve + ROW Tracker stacked together (per requirement: ROW moved here) -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="pnl">
+        <div class="ph2">
+          <div class="pt" style="font-weight:700;">📈 Planned vs Actual — S-Curve</div>
+          <span style="font-size:8px;color:var(--t3);" id="home-scurve-range">—</span>
+        </div>
+        <div class="ch h220"><canvas id="ch-pva"></canvas></div>
+      </div>
+      <!-- ROW Tracker (was previously inside POD section) -->
+      <div class="pnl" id="home-row-tracker"></div>
+    </div>
+
+    <!-- Milestones -->
+    <div class="pnl">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">📅 Scheduled Milestones</div>
+        <button class="btn bts" style="font-size:7px;" onclick="openMilestoneForm()">+ Add</button>
+      </div>
+      <div id="home-milestones" style="font-size:9px;"></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 4: Daily Progress feed + open submission form ──
+       Anyone can submit a daily progress entry — no login required.
+       The /dailyProgress collection is public-write per security rules. -->
+  <div id="home-row4" style="display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-bottom:12px;scroll-margin-top:100px;">
+
+    <!-- Live feed -->
+    <div class="pnl">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">⚡ Daily Progress Feed</div>
+        <span style="font-size:8px;color:var(--t3);">Real-time · last 10 entries</span>
+      </div>
+      <div id="home-daily-progress-list" style="font-size:10px;max-height:280px;overflow-y:auto;">
+        <div style="text-align:center;padding:24px;color:var(--t3);font-size:10px;">No entries yet — be the first to submit one →</div>
+      </div>
+    </div>
+
+    <!-- Public submission form (NO login required) -->
+    <div class="pnl">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">➕ Submit Daily Progress</div>
+        <span style="font-size:8px;color:var(--t3);" id="dpf-auth-hint">Anonymous</span>
+      </div>
+      <form id="daily-progress-form" onsubmit="return submitDailyProgressForm(event)" style="display:grid;gap:6px;font-size:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div class="fg">
+            <label class="fl">Module</label>
+            <select class="fs" id="dpf-module" required>
+              <option value="Solar">Solar</option>
+              <option value="WTG">WTG</option>
+              <option value="BOP">BOP</option>
+              <option value="Land">Land</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Quantity</label>
+            <input class="fi" id="dpf-qty" type="number" step="any" min="0" placeholder="e.g. 12" required>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Activity</label>
+          <input class="fi" id="dpf-activity" placeholder="e.g. Pile Drilling" required maxlength="200">
+        </div>
+        <div class="fg">
+          <label class="fl">Unit</label>
+          <input class="fi" id="dpf-unit" placeholder="e.g. Nos / m³ / m" maxlength="20">
+        </div>
+        <div class="fg">
+          <label class="fl">Remarks</label>
+          <textarea class="fta" id="dpf-remarks" placeholder="Optional notes…" style="min-height:48px;" maxlength="500"></textarea>
+        </div>
+        <button type="submit" class="btn bta" style="font-weight:700;">Submit</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── ROW 5: PROJECT GANTT (Site Manager edits via openGanttEditor) ── -->
+  <div class="pnl" id="home-gantt-wrap" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">📅 Project Gantt — Planned vs Actual</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn bts" style="font-size:8px;background:var(--ac);color:var(--bg);border:none;font-weight:600;"
+                onclick="reqLogin('all',openGanttEditor)" data-tt="Site Manager only — edit Gantt activities">✏️ Edit Gantt</button>
+        <button class="btn bts" style="font-size:8px;" onclick="openDrilldown('Gantt Help','Click a bar to drill down into timeline detail. Site Manager can edit activities via ✏️ Edit Gantt.')" data-tt="How to use the Gantt">ℹ️ Help</button>
+      </div>
+    </div>
+    <div id="home-gantt"></div>
+  </div>
+
+</div><!-- /view-home -->
