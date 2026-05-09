@@ -1,0 +1,81 @@
+<!-- ════ HOME DASHBOARD ════ -->
+<div class="view on" id="view-home">
+
+  <!-- ── HEADER ── -->
+  <div class="dash-header">
+    <div class="dash-logo">
+      <img src="continuumlogo.png" style="height:52px;object-fit:contain;" onerror="this.style.display='none'">
+    </div>
+    <div>
+      <div class="dash-title" style="color:#1565c0;font-size:23px;font-weight:800;letter-spacing:.3px;">Continuum Green Energy</div>
+      <div class="dash-sub">Shubh Wind Energy Private Limited &nbsp;|&nbsp; 140 MW Hybrid (Solar + Wind) Project – EPC Dashboard</div>
+    </div>
+    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <button class="btn bts" onclick="openScopeManager()" data-tt="Edit MW / tower counts and ITC scopes">⚙️ Scope Manager</button>
+      <div style="font-size:8px;color:var(--t3);" id="last-saved-ts">💾 Auto-save active</div>
+    </div>
+  </div>
+
+  <!-- ── STICKY SECTION NAV ── -->
+  <div class="adv-sec-nav" id="home-secnav">
+    <div class="sni act" onclick="sniClick(this,'home-kpi-row',event)">📊 KPIs</div>
+    <div class="sni"     onclick="sniClick(this,'home-chart-strip',event)">📈 Charts</div>
+    <div class="sni"     onclick="sniClick(this,'home-row3',event)">📋 POD & S-Curve</div>
+    <div class="sni"     onclick="sniClick(this,'home-gantt-wrap',event)">📅 Gantt</div>
+  </div>
+
+  <!-- ── ROW 1: KPI CARDS ── -->
+  <div class="sq-kpi-row" id="home-kpi-row" style="scroll-margin-top:100px;"></div>
+
+  <!-- ── ROW 2: CHART STRIP ── -->
+  <div class="chart-strip" id="home-chart-strip" style="scroll-margin-top:100px;">
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">Solar ITCs — C/WIP/Rem</div></div>
+      <div class="ch h160"><canvas id="ch-sol-cwip"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">WTG Foundation Progress</div></div>
+      <div class="ch h160"><canvas id="ch-wtg-cwip"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">BOP Progress</div></div>
+      <div class="ch h160"><canvas id="ch-bop-prog"></canvas></div>
+    </div>
+    <div class="pnl chart-strip-cell">
+      <div class="ph2"><div class="pt" style="font-size:9px;font-weight:700;">Land Progress</div></div>
+      <div class="ch h160"><canvas id="ch-land-prog"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 3: 1/3 POD | 1/3 S-Curve | 1/3 Milestones ── -->
+  <div id="home-row3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;scroll-margin-top:100px;">
+    <!-- POD + DPR + ROW -->
+    <div class="pnl" style="padding:10px 12px;"><div id="home-pod-dpr"></div></div>
+    <!-- S-Curve -->
+    <div class="pnl">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">Planned vs Actual — S-Curve</div>
+        <span style="font-size:8px;color:var(--t3);">Jan 2026 – May 2027</span>
+      </div>
+      <div class="ch h260"><canvas id="ch-pva"></canvas></div>
+    </div>
+    <!-- Milestones -->
+    <div class="pnl">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">📅 Scheduled Milestones</div>
+        <button class="btn bts" style="font-size:7px;" onclick="openMilestoneForm()">+ Add</button>
+      </div>
+      <div id="home-milestones" style="font-size:9px;"></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 4: PROJECT GANTT ── -->
+  <div class="pnl" id="home-gantt-wrap" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">📅 Project Gantt — Planned vs Actual</div>
+      <button class="btn bts" style="font-size:8px;" onclick="openDrilldown('Gantt Details','Click any bar on the Gantt to see timeline details.')" data-tt="Click bars to drill down">ℹ️ Help</button>
+    </div>
+    <div id="home-gantt"></div>
+  </div>
+
+</div><!-- /view-home -->
