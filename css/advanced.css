@@ -1,0 +1,227 @@
+/* ══════════════════════════════════════════════════════════════
+   ADVANCED FEATURES  ·  SWPPL EPC Dashboard  ·  v16
+   All additions — no overrides of base styles
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── PAGE ENTER ANIMATION ─────────────────────────────────── */
+.view.on{animation:pageSlide .32s cubic-bezier(.4,0,.2,1);}
+@keyframes pageSlide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* KPI / PANEL stagger */
+.sq-kpi{animation:popUp .3s cubic-bezier(.34,1.4,.64,1) both;}
+.sq-kpi:nth-child(1){animation-delay:.04s}
+.sq-kpi:nth-child(2){animation-delay:.08s}
+.sq-kpi:nth-child(3){animation-delay:.12s}
+.sq-kpi:nth-child(4){animation-delay:.16s}
+.sq-kpi:nth-child(5){animation-delay:.20s}
+.sq-kpi:nth-child(6){animation-delay:.24s}
+.sq-kpi:nth-child(7){animation-delay:.28s}
+@keyframes popUp{from{opacity:0;transform:scale(.88) translateY(10px)}to{opacity:1;transform:none}}
+
+/* Progress bar fill transition */
+.prf,.ovp-fill,.actc-fill,.mc-bf{transition:width 1.3s cubic-bezier(.4,0,.2,1)!important;}
+
+/* ── STICKY SECTION NAV ───────────────────────────────────── */
+.adv-sec-nav{
+  position:sticky;top:50px;z-index:80;
+  background:rgba(7,16,31,.93);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;
+  padding:0 6px;height:36px;margin:0 -14px 14px;
+  overflow-x:auto;scrollbar-width:none;gap:0;
+}
+.adv-sec-nav::-webkit-scrollbar{display:none;}
+.sni{
+  padding:0 14px;height:36px;display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:600;cursor:pointer;color:var(--t3);
+  border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;
+  user-select:none;
+}
+.sni:hover{color:var(--t2);}
+.sni.act{color:var(--ac);border-bottom-color:var(--ac);}
+
+/* ── GLOBAL SEARCH OVERLAY ────────────────────────────────── */
+#adv-search{
+  position:fixed;inset:0;
+  background:rgba(4,9,18,.88);backdrop-filter:blur(18px);
+  z-index:6000;display:none;align-items:flex-start;justify-content:center;
+  padding-top:88px;
+}
+#adv-search.open{display:flex;}
+.srch-box{
+  background:var(--bg2);border:1px solid var(--b2);border-radius:18px;
+  width:min(660px,93vw);max-height:72vh;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 32px 100px rgba(0,0,0,.75);
+  animation:popUp .22s ease;
+}
+.srch-inp{
+  padding:16px 20px;font-size:15px;font-family:var(--f);
+  background:transparent;border:none;border-bottom:1px solid var(--b1);
+  color:var(--t1);outline:none;width:100%;
+}
+.srch-results{flex:1;overflow-y:auto;padding:8px 6px;}
+.srch-cat{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);padding:8px 12px 3px;}
+.srch-item{
+  padding:9px 14px;border-radius:9px;cursor:pointer;
+  display:flex;align-items:center;gap:11px;font-size:11px;transition:background .12s;
+}
+.srch-item:hover,.srch-item.highlighted{background:var(--card2);}
+.srch-item-icon{font-size:16px;flex-shrink:0;}
+.srch-item-main{font-weight:600;color:var(--t1);margin-bottom:1px;}
+.srch-item-sub{font-size:9px;color:var(--t3);}
+.srch-kbd{margin-left:auto;background:var(--b1);border-radius:4px;padding:2px 6px;font-size:8px;color:var(--t3);}
+.srch-empty{padding:32px;text-align:center;color:var(--t3);font-size:11px;}
+
+/* ── TOOLTIP ──────────────────────────────────────────────── */
+#adv-tt{
+  position:fixed;z-index:8000;
+  background:var(--card2);border:1px solid var(--b2);border-radius:9px;
+  padding:7px 12px;font-size:10px;color:var(--t1);line-height:1.5;
+  box-shadow:0 8px 32px rgba(0,0,0,.55);pointer-events:none;
+  opacity:0;transform:translateY(5px);
+  transition:opacity .15s,transform .15s;max-width:240px;
+}
+#adv-tt.visible{opacity:1;transform:none;}
+
+/* ── THEME TOGGLE ─────────────────────────────────────────── */
+.theme-btn{
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  background:var(--card2);border:1px solid var(--b1);border-radius:22px;
+  padding:3px 10px 3px 3px;transition:all .2s;
+}
+.theme-btn:hover{border-color:var(--ac);}
+.theme-orb{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,var(--ac),var(--ac3));
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  transition:transform .35s ease;flex-shrink:0;
+}
+[data-theme=light] .theme-orb{transform:rotate(180deg);}
+.theme-lbl{font-size:9px;font-weight:600;color:var(--t2);}
+
+/* ── KPI TREND ARROWS ─────────────────────────────────────── */
+.kpi-delta{font-size:9px;font-weight:700;display:flex;align-items:center;gap:3px;margin-top:4px;}
+.delta-up{color:var(--ok);}.delta-dn{color:var(--er);}.delta-nc{color:var(--t3);}
+
+/* ── EXPORT BAR ───────────────────────────────────────────── */
+.exp-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.btn-pdf{background:linear-gradient(135deg,#b71c1c,#e53935);color:#fff;border:none;}
+.btn-csv{background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;border:none;}
+.btn-pdf:hover,.btn-csv:hover{filter:brightness(1.12);border:none;}
+
+/* ── EXPANDABLE TABLE ROWS ────────────────────────────────── */
+.xrow{cursor:pointer;transition:background .12s;}
+.xrow:hover td{background:var(--card3)!important;}
+.xdet{background:var(--card3);}
+.xdet.gone{display:none;}
+.xarrow{display:inline-block;transition:transform .2s;font-size:9px;margin-right:4px;color:var(--t3);}
+.xarrow.open{transform:rotate(90deg);}
+
+/* ── FILTER TOOLBAR ───────────────────────────────────────── */
+.flt-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;background:var(--card);border:1px solid var(--b1);
+  border-radius:9px;margin-bottom:10px;
+}
+.flt-lbl{font-size:9px;color:var(--t3);font-weight:600;flex-shrink:0;}
+.flt-sel,.flt-date{
+  background:var(--card2);border:1px solid var(--b1);border-radius:5px;
+  color:var(--t2);font-size:9px;padding:3px 8px;
+  outline:none;font-family:var(--f);transition:border-color .18s;
+}
+.flt-sel:focus,.flt-date:focus{border-color:var(--ac);}
+.flt-sel option{background:var(--bg2);}
+.flt-clr{background:none;border:1px solid var(--er);color:var(--er);
+  border-radius:5px;padding:3px 9px;font-size:9px;cursor:pointer;transition:all .18s;}
+.flt-clr:hover{background:var(--er);color:#fff;}
+
+/* ── DRILLDOWN MODAL ──────────────────────────────────────── */
+#adv-dd{
+  position:fixed;inset:0;background:rgba(4,9,18,.90);
+  backdrop-filter:blur(12px);z-index:5500;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#adv-dd.open{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.dd-box{
+  background:var(--bg2);border:1px solid var(--b2);border-radius:18px;
+  width:min(860px,96vw);max-height:90vh;display:flex;flex-direction:column;
+  overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.8);
+  animation:popUp .25s ease;
+}
+.dd-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-bottom:1px solid var(--b1);flex-shrink:0;
+}
+.dd-title{font-family:var(--f2);font-size:16px;font-weight:700;}
+.dd-close{
+  background:none;border:1px solid var(--b1);color:var(--t3);
+  width:28px;height:28px;border-radius:8px;cursor:pointer;
+  font-size:14px;transition:all .18s;
+}
+.dd-close:hover{border-color:var(--er);color:var(--er);}
+.dd-body{flex:1;overflow-y:auto;padding:18px 20px;}
+
+/* ── GANTT CHART ──────────────────────────────────────────── */
+.gantt-wrap{overflow-x:auto;border:1px solid var(--b1);border-radius:var(--r);}
+.gantt-inner{min-width:860px;}
+.gantt-hrow{display:flex;background:var(--bg3);border-bottom:1px solid var(--b1);}
+.gantt-hlabel{width:170px;flex-shrink:0;padding:6px 10px;font-size:8px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;color:var(--t3);border-right:1px solid var(--b1);}
+.gantt-hcols{flex:1;display:flex;}
+.gantt-hcell{flex:1;text-align:center;font-size:8px;color:var(--t3);padding:6px 2px;
+  border-right:1px solid var(--b1);}
+.gantt-row{display:flex;align-items:center;border-bottom:1px solid var(--b1);min-height:34px;}
+.gantt-row:last-child{border-bottom:none;}
+.gantt-rlabel{width:170px;flex-shrink:0;padding:6px 10px;font-size:9px;font-weight:600;
+  border-right:1px solid var(--b1);background:var(--card);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gantt-track{flex:1;position:relative;height:34px;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/17 - 1px),
+    var(--b1) calc(100%/17 - 1px),var(--b1) calc(100%/17));}
+.gantt-bar{
+  position:absolute;top:7px;height:20px;border-radius:6px;
+  display:flex;align-items:center;padding:0 7px;
+  font-size:8px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;
+  cursor:pointer;transition:filter .18s,transform .12s;
+}
+.gantt-bar:hover{filter:brightness(1.25);transform:scaleY(1.12);z-index:1;}
+.gantt-plan{opacity:.38;border:1.5px dashed rgba(255,255,255,.3);}
+.gantt-actual{opacity:.9;}
+.gantt-late{animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:.9}50%{opacity:.45}}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--er);opacity:.75;z-index:2;}
+
+/* ── SAFETY CALENDAR ──────────────────────────────────────── */
+.safe-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px;}
+.safe-cal-hdr{text-align:center;font-size:7px;font-weight:700;color:var(--t4);padding:2px;}
+.cal-cell{
+  aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:700;cursor:pointer;border:1px solid transparent;
+  transition:transform .15s;
+}
+.cal-cell:hover{transform:scale(1.2);z-index:1;position:relative;}
+.cal-safe{background:#2e7d32;color:#fff;}
+.cal-obs-open{background:#c62828;color:#fff;}
+.cal-obs-closed{background:#f9a825;color:#000;}
+.cal-future{background:var(--card2);color:var(--t4);}
+.cal-today{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ac);}
+
+/* ── HSE LEADERBOARD RANKS ────────────────────────────────── */
+.rank-gold{background:linear-gradient(135deg,#f9a825,#ffd54f);color:#000;font-weight:800;}
+.rank-silver{background:linear-gradient(135deg,#90a4ae,#cfd8dc);color:#000;font-weight:800;}
+.rank-bronze{background:linear-gradient(135deg,#8d6e63,#bcaaa4);color:#fff;font-weight:800;}
+
+/* ── IMAGE UPLOAD PREVIEW ─────────────────────────────────── */
+.img-upload-zone{
+  border:2px dashed var(--b2);border-radius:8px;padding:12px;
+  text-align:center;cursor:pointer;transition:all .2s;
+  background:var(--card2);
+}
+.img-upload-zone:hover{border-color:var(--ac);background:rgba(0,200,255,.04);}
+.img-preview{width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px;}
+
+/* ── ANIMATED MAP CONNECTOR ───────────────────────────────── */
+@keyframes dashFlow{to{stroke-dashoffset:-20;}}
+.map-anim-line{animation:dashFlow 1.2s linear infinite;}
