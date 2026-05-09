@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Continuum Green Energy – SWPPL 140MW Hybrid Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/page-logo.css">
+<link rel="stylesheet" href="css/advanced.css">
+</head>
+
+<body>
+
+<div id="ldr"></div>
+
+<!-- Overlays -->
+<div id="overlay-login"></div>
+<div id="overlay-modals"></div>
+
+<div id="app">
+  <div id="sidebar-mount"></div>
+  <div id="mn">
+    <div id="topbar-mount"></div>
+    <div id="ct">
+      <div id="views-mount"></div>
+    </div>
+    <div id="footer-mount"></div>
+  </div>
+</div>
+
+<!-- ───────────────────────────────────────────────────────────────
+     Firebase Compat SDKs — DB + Auth (anonymous only)
+     No Storage SDK (HSE photos use base64 fallback to stay on Spark)
+     ─────────────────────────────────────────────────────────────── -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<!-- ───────────────────────────────────────────────────────────────
+     v10 core layer  (load order matters)
+     1. firebase.js   → exposes fbDB / fbAuth / fbReady (anon-auth)
+     2. dom.js        → esc(), el(), safeHTML()
+     3. edit-lock.js  → window.editLock (session-only password gate)
+     4. data-api.js   → window.dataApi.* (mutators)
+     5. realtime.js   → window.realtime.* (listeners)
+     6. data.js       → defines window.DB
+     7. legacy-shim   → maps old globals (CU, scheduleSave, doLogin, reqLogin)
+     8. renderers
+     9. loader.js     → boots
+     ─────────────────────────────────────────────────────────────── -->
+<script src="js/firebase.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/edit-lock.js"></script>
+<script src="js/data-api.js"></script>
+<script src="js/realtime.js"></script>
+
+<script src="js/data.js"></script>
+<script src="js/legacy-shim.js"></script>
+
+<script src="js/calc.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/render-home.js"></script>
+<script src="js/render-solar.js"></script>
+<script src="js/render-wtg.js"></script>
+<script src="js/render-land.js"></script>
+<script src="js/render-bop.js"></script>
+<script src="js/render-misc.js"></script>
+<script src="js/render-dpr.js"></script>
+<script src="js/advanced.js"></script>
+<script src="js/loader.js"></script>
+
+</body>
+</html>

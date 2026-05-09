@@ -1,0 +1,76 @@
+{
+  "rules": {
+    ".read":  "auth != null",
+    ".write": "auth != null",
+
+    "pod": {
+      "$date": {
+        ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        "$pushId": {
+          ".validate": "newData.hasChildren(['module','activity','ts'])",
+          "module":   { ".validate": "newData.isString() && newData.val().matches(/^(s|w|l|b)$/)" },
+          "activity": { ".validate": "newData.isString() && newData.val().length < 200" },
+          "qty":      { ".validate": "newData.isNumber()" },
+          "mp":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 10000" },
+          "ts":       { ".validate": "newData.val() <= now + 60000" },
+          "by":       { ".validate": "newData.isString() && newData.val().length < 80" },
+          "notes":    { ".validate": "newData.isString() && newData.val().length < 500" },
+          "contractor": { ".validate": "newData.isString() && newData.val().length < 120" },
+          "$other":   { ".validate": true }
+        }
+      }
+    },
+
+    "solar": {
+      "itcs": {
+        "$itcId": {
+          ".validate": "$itcId.matches(/^ITC-[0-9]+$/)",
+          "acts": {
+            "$idx": {
+              "done":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+              "today":  { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+              "lastAt": { ".validate": "newData.val() <= now + 60000" },
+              "$other": { ".validate": true }
+            }
+          }
+        }
+      }
+    },
+
+    "wtg": {
+      "turbines": {
+        "$turbId": {
+          ".validate": "$turbId.length < 30",
+          "$other":    { ".validate": true }
+        }
+      }
+    },
+
+    "bop": {
+      ".validate": true
+    },
+
+    "hse": {
+      "observations": {
+        "$id": {
+          ".validate": "newData.hasChildren(['type','desc','ts'])",
+          "ts":   { ".validate": "newData.val() <= now + 60000" },
+          "desc": { ".validate": "newData.isString() && newData.val().length < 1000" },
+          "$other": { ".validate": true }
+        }
+      }
+    },
+
+    "land":       { ".validate": true },
+    "milestones": { ".validate": true },
+    "blockers":   { ".validate": true },
+    "schedule":   { ".validate": true },
+
+    "audit": {
+      "$ts": {
+        ".write":    "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['action','ts'])"
+      }
+    }
+  }
+}
