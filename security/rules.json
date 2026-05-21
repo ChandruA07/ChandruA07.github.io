@@ -1,0 +1,18 @@
+{
+  "_comment": "Mirror of /database.rules.json kept here for backwards compatibility with deploy scripts that referenced security/rules.json. The canonical file is now /database.rules.json (referenced by /firebase.json). Keep both in sync.",
+
+  "rules": {
+    ".read":  true,
+    ".write": true,
+
+    "dailyProgress": {
+      ".indexOn": ["ts"]
+    },
+
+    "hse": {
+      "observations": {
+        ".indexOn": ["ts"]
+      }
+    }
+  }
+}

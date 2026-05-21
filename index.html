@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Continuum Green Energy – SWPPL 140MW Hybrid Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/page-logo.css">
+<link rel="stylesheet" href="css/advanced.css">
+</head>
+
+<body>
+
+<div id="ldr"></div>
+
+<!-- Overlays -->
+<div id="overlay-login"></div>
+<div id="overlay-modals"></div>
+
+<div id="app">
+  <div id="sidebar-mount"></div>
+  <div id="mn">
+    <div id="topbar-mount"></div>
+    <div id="ct">
+      <div id="views-mount"></div>
+    </div>
+    <div id="footer-mount"></div>
+  </div>
+</div>
+
+<!-- ───────────────────────────────────────────────────────────────
+     Firebase Compat SDKs — DB + Storage only.
+     FIX 4 — firebase-auth-compat.js intentionally NOT loaded:
+     this app uses a hardcoded password gate in js/auth.js, not
+     Firebase Authentication. Removing the script trims ~70 KB
+     and prevents any code from accidentally calling
+     firebase.auth() in the future.
+     ─────────────────────────────────────────────────────────── -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+<!-- ───────────────────────────────────────────────────────────────
+     v9 core layer  (load order matters)
+     1. firebase.js     → exposes fbDB / fbAuth / fbStorage
+     2. dom.js          → esc(), el(), safeHTML()
+     3. auth.js         → window.auth.signIn / requireRole
+     4. data-api.js     → window.dataApi.* (Firebase writes)
+     5. realtime.js     → window.realtime.* (Firebase listeners)
+     6. storage.js      → window.storage.* (Firebase Storage uploads)
+     7. state.js        → window.appState + appStore (single source of truth)
+     8. data.js         → window.DB (legacy shape used by renderers)
+     9. state-bridge.js → wires Firebase → appState → DB → re-render
+    10. renderers       → read DB, write via dataApi.*
+    11. loader.js       → boots the UI
+     ─────────────────────────────────────────────────────────────── -->
+<script src="js/firebase.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data-api.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+
+<script src="js/data.js"></script>
+<script src="js/state-bridge.js"></script>
+
+<script src="js/calc.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/render-home.js"></script>
+<script src="js/render-solar.js"></script>
+<script src="js/wtg-structure.js"></script>
+<script src="js/solar-structure.js"></script>
+<script src="js/project-creator.js"></script>
+<script src="js/render-wtg.js"></script>
+<script src="js/render-land.js"></script>
+<script src="js/render-bop.js"></script>
+<script src="js/render-misc.js"></script>
+<script src="js/advanced.js"></script>
+<script src="js/user-panel.js"></script>
+<script src="js/loader.js"></script>
+
+<!--
+  Architecture: Firebase Realtime DB is the SINGLE source of truth.
+  • All writes go through dataApi.* (data-api.js) which writes to Firebase.
+  • All reads come from realtime.* (realtime.js) which feeds appStore (state.js).
+  • appStore mirrors into the legacy `window.DB` shape (state-bridge.js)
+    so existing renderers keep working without rewriting them.
+  • UI re-renders automatically whenever appState changes.
+  No legacy local-only saves. No no-op scheduleSave. No data overwrite bugs.
+-->
+
+</body>
+</html>

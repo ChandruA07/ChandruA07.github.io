@@ -1,0 +1,7 @@
+{
+  "_comment": "Minimal Firebase project file so `firebase deploy --only database` finds the rules. The hosting/functions/storage sections are intentionally absent — this app is plain static HTML and currently has no Cloud Functions. Add a `hosting` block here if you decide to host on Firebase Hosting.",
+
+  "database": {
+    "rules": "database.rules.json"
+  }
+}

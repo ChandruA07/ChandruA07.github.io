@@ -1,0 +1,14 @@
+/* ── Per-page Continuum logo (top-right on all sub-pages, top-left on dashboard) ── */
+.page-logo-tr{
+  position:absolute;top:8px;right:14px;
+  display:flex;align-items:center;gap:7px;
+  pointer-events:none;z-index:10;
+}
+.page-logo-tr img{height:36px;object-fit:contain;opacity:.85;}
+.page-logo-tl{
+  display:flex;align-items:center;gap:10px;margin-bottom:0;
+}
+.page-logo-tl img{height:48px;object-fit:contain;}
+
+/* Fix sidebar .nx so images inside .nx scale correctly */
+.nx img{width:17px;height:17px;object-fit:contain;display:inline-block;vertical-align:middle;}

@@ -1,0 +1,40 @@
+<div id="lw" class="lw" style="display:none;">
+  <div class="lb">
+    <div class="li" id="l-i">🔐</div>
+    <div class="lt" id="l-t">Edit Access — Login</div>
+    <div class="ls" id="l-s">
+      Enter the credentials for this section to enable edits in this tab.
+    </div>
+
+    <div class="fg" style="text-align:left;margin-top:4px;">
+      <label class="fl">Username</label>
+      <input class="fi" id="l-u" type="text" autocomplete="username" placeholder="e.g. solar_user">
+    </div>
+    <div class="fg" style="text-align:left;">
+      <label class="fl">Password</label>
+      <input class="fi" id="l-p" type="password" autocomplete="current-password"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')auth.doLoginForm()">
+    </div>
+
+    <div class="le" id="l-e"></div>
+
+    <div style="display:flex;gap:7px;margin-top:7px;">
+      <button class="btn"     style="flex:1;" onclick="auth.closeLogin()">Cancel</button>
+      <button class="btn bta" style="flex:1;" data-role="submit" onclick="auth.doLoginForm()">Unlock Edits</button>
+    </div>
+
+    <div style="margin-top:9px;padding:8px 10px;background:var(--card3);border-radius:6px;
+                font-size:9px;color:var(--t3);text-align:left;line-height:1.6;">
+      <b style="color:var(--t2);">Demo accounts (role-based access)</b><br>
+      • Solar: <code>solar_user</code> / <code>Solar@123</code><br>
+      • WTG: <code>wtg_user</code> / <code>Wtg@123</code><br>
+      • BOP: <code>bop_user</code> / <code>Bop@123</code><br>
+      • Land: <code>land_user</code> / <code>Land@123</code><br>
+      • Site Manager: <code>site_user</code> / <code>Site@123</code> (full access)
+      <br><br>
+      <b>Demo build — not real authentication.</b> Anyone with browser DevTools can bypass this gate.
+      Treat as a UX boundary, not a security one.
+    </div>
+  </div>
+</div>
