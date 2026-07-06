@@ -1,0 +1,34 @@
+{
+  "_comment": "Deploy everything with a single `firebase deploy` (after `firebase init` linking your project): hosting serves the static dashboard, database deploys the realtime-database rules, storage deploys the photo-upload rules. Or upload the folder as-is to GitHub Pages / Netlify — the app is fully static and self-contained (views are inlined into index.html).",
+
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "database.rules.json",
+      "security/**",
+      "tools/**",
+      "**/.*",
+      "**/node_modules/**",
+      "*.md"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [{ "key": "Cache-Control", "value": "max-age=3600" }]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|webp|svg)",
+        "headers": [{ "key": "Cache-Control", "value": "max-age=86400" }]
+      }
+    ]
+  },
+
+  "database": {
+    "rules": "database.rules.json"
+  },
+
+  "storage": {
+    "rules": "security/storage.rules"
+  }
+}

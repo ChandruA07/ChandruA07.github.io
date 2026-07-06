@@ -1,0 +1,2632 @@
+{
+  "solar": {
+    "meta": {
+      "totalMW": 70.4,
+      "itcMW": {
+        "ITC-1": 13.2,
+        "ITC-2": 13.2,
+        "ITC-3": 13.2,
+        "ITC-4": 13.2,
+        "ITC-5": 8.8,
+        "ITC-6": 8.8
+      }
+    },
+    "itcs": {
+      "ITC-1": {
+        "acts": {
+          "0": {
+            "done": 90,
+            "today": 0,
+            "subDone": [
+              6185,
+              6185,
+              5985,
+              3921
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 20,
+            "today": 0,
+            "subDone": [
+              720
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 17,
+            "today": 0,
+            "subDone": [
+              2903,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              8,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 43,
+            "today": 0,
+            "subDone": [
+              490,
+              33,
+              192
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 37,
+            "today": 0,
+            "subDone": [
+              1,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [
+            "Pre-Boundary Wall — Pole alignment completed – 100 mtr",
+            "DC Cable Trench — Excavation & hard-rock breaking – 200 mtr",
+            "DC Trench — Dressing and sand bedding – 50 mtr",
+            "MMS Erection — Tilt fixing & fastener tightening – 5 full tables",
+            "Solar PV Module Installation – 100 Nos",
+            "ITC Foundation — Excavation NIFPS / BOT / AUX Transformer in progress",
+            "Pile Casting (200 Nos) – NOT started (Aaraa vendor mobilisation pending)",
+            "LA Foundation Drilling & Casting – NOT started (vendor machinery/MP issue)"
+          ],
+          "noWorkReason": "",
+          "lastByName": "Site Engineer - Solar",
+          "lastAt": 1778636146649
+        }
+      },
+      "ITC-2": {
+        "acts": {
+          "0": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [],
+          "noWorkReason": "Land development pending — work not yet mobilised.",
+          "lastByName": "",
+          "lastAt": 1778636146649
+        }
+      },
+      "ITC-3": {
+        "acts": {
+          "0": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [],
+          "noWorkReason": "Land development pending — work not yet mobilised.",
+          "lastByName": "",
+          "lastAt": 1778636146649
+        }
+      },
+      "ITC-4": {
+        "acts": {
+          "0": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [],
+          "noWorkReason": "Land registration pending — work not yet mobilised.",
+          "lastByName": "",
+          "lastAt": 1778636146649
+        }
+      },
+      "ITC-5": {
+        "acts": {
+          "0": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [],
+          "noWorkReason": "Land registration pending — work not yet mobilised.",
+          "lastByName": "",
+          "lastAt": 1778636146649
+        }
+      },
+      "ITC-6": {
+        "acts": {
+          "0": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 6185
+          },
+          "1": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "2": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 3620
+          },
+          "3": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 5679
+          },
+          "4": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 9984
+          },
+          "5": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0
+            ],
+            "subScope": 1
+          },
+          "6": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 72
+          },
+          "7": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 580
+          },
+          "8": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "9": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "10": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "11": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 13
+          },
+          "12": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "13": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          },
+          "14": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1236
+          },
+          "15": {
+            "done": 0,
+            "today": 0,
+            "subDone": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "subScope": 1
+          }
+        },
+        "live": {
+          "activities": [],
+          "noWorkReason": "Land procurement pending — work not yet mobilised.",
+          "lastByName": "",
+          "lastAt": 1778636146649
+        }
+      }
+    }
+  },
+  "wtg": {
+    "meta": {
+      "totalMW": 70.2,
+      "count": 26
+    },
+    "turbines": {
+      "MBI-12": {
+        "status": "wip",
+        "lp": true,
+        "pp": true,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          100,
+          100,
+          100,
+          80
+        ],
+        "uss": 0,
+        "sup": 100,
+        "notes": "T1-T5 + Nacelle + Rotor Assembly + Rotor Erection + Boom Down COMPLETED. T1 Preparation WIP — Third-party validation under Technical Review. 11-May: T5 Generator cable termination 50%->100% done; Stator & Hub Prep WIP",
+        "mechDates": {
+          "towerStart": "2026-04-07",
+          "towerEnd": "2026-04-19",
+          "nacelleStart": "2026-04-20",
+          "nacelleEnd": "2026-04-30",
+          "bladeStart": "2026-05-03",
+          "bladeEnd": ""
+        }
+      },
+      "MKD-258": {
+        "status": "row",
+        "lp": true,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation Complete. Logistic Pathway Marum filling 500/550m — work hold due to mining inspection by Department. Main crane cabin marching WIP",
+        "mechDates": {}
+      },
+      "KDK-462": {
+        "status": "wip",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Civil 100% (Casting + Curing + Backfilling done). Pathway ROW clearance & development PENDING — work hold due to Farmer issue. 100m Pathway Marum filling pending",
+        "mechDates": {}
+      },
+      "MOB-403": {
+        "status": "casting",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation Complete. CP done 15-Apr. Logistic Pathway Marum filling 800/1300m — work hold due to Vendor Payment Issue",
+        "mechDates": {}
+      },
+      "BDK-85": {
+        "status": "casting",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation Complete (Cast 28-Feb-2026, BackFill 09-Apr). Currently under Technical Review. Backfilling 1st layer + Pipe Fitting completed",
+        "mechDates": {}
+      },
+      "MKD-253": {
+        "status": "wip",
+        "lp": true,
+        "pp": true,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          100,
+          100,
+          60,
+          0
+        ],
+        "uss": 0,
+        "sup": 100,
+        "notes": "Tower + Nacelle COMPLETED. MCC 60% completed. Hub work hold — High Wind. 11-May: T5 Generator cable termination 50% remaining. Plan: Hub Prep, A-section cable looping, Loop crimping",
+        "mechDates": {
+          "towerStart": "2026-03-01",
+          "towerEnd": "2026-03-12",
+          "nacelleStart": "2026-04-15",
+          "nacelleEnd": "2026-04-22",
+          "bladeStart": "",
+          "bladeEnd": ""
+        }
+      },
+      "AMK-264": {
+        "status": "wip",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Civil casting + curing completed. 11-May: Foundation remaining 60% shuttering work hold due to Vendor Manpower not available & Payment Issue",
+        "mechDates": {}
+      },
+      "CDP-221": {
+        "status": "casting",
+        "lp": true,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation Complete. CP done WIP 20%. 11-May: 3rd-layer backfilling + compaction + FDD completion + Cranepad WIP. Water sprinkling & curing in progress",
+        "mechDates": {}
+      },
+      "MOB-142": {
+        "status": "casting",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Civil casting + curing + backfilling completed. 11-May: Pipe fixing & Water proofing hold — Vendor Manpower & Payment Issue",
+        "mechDates": {}
+      },
+      "MKD-211": {
+        "status": "wip",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Re-Engg Foundation completed (Cast 21-Apr, Cure 01-May). 11-May: 2nd GSB filling/leveling/compaction hold — Pathway ROW Farmer Payment Issue",
+        "mechDates": {}
+      },
+      "BDK-165": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Re-Engg Foundation completed (Cast 10-Mar). LEGAL CASE 14/2026 OS-SRC Kudligi Brothers — Expected clear 31-May-2026",
+        "mechDates": {}
+      },
+      "BLK-400": {
+        "status": "row",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "LEGAL ISSUE — PTCL Land. Location effectively Cancelled pending legal resolution",
+        "mechDates": {}
+      },
+      "CDP-193": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation Complete (Cast 23-Mar). LEGAL CASE 254/2025 OS-SRC Kudligi Brothers — RFC pending court case. Expected clear 31-May-2026",
+        "mechDates": {}
+      },
+      "MKD-52": {
+        "status": "wip",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Re-Engg Foundation completed (Cast 23-Apr, Cure 03-May, BackFill 06-May). 11-May: Lease area cleaning hold — ROW Farmer Payment Issue",
+        "mechDates": {}
+      },
+      "BDK-25": {
+        "status": "wip",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Foundation completed (Cast 18-Apr, Cure 28-Apr, BackFill 01-May). 11-May: Hardrock Breaking Excavation hold — Vendor Payment Issue",
+        "mechDates": {}
+      },
+      "BDK-183": {
+        "status": "pending",
+        "lp": true,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Registration completed 10-May-2026. Land leased count now 16/26. Foundation work to be mobilised",
+        "mechDates": {}
+      },
+      "LOC-13": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-14": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-15": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-16": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-17": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-18": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-19": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-20": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-21": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      },
+      "LOC-22": {
+        "status": "pending",
+        "lp": false,
+        "pp": false,
+        "civil": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mech": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "uss": 0,
+        "sup": 0,
+        "notes": "Land procurement & survey pending — not yet started",
+        "mechDates": {}
+      }
+    }
+  },
+  "bop": {
+    "acts": {
+      "Feeder-1 SPDC": [
+        100,
+        97,
+        97,
+        97,
+        37,
+        5,
+        0,
+        0
+      ],
+      "Feeder-1 SPSC": [
+        100,
+        91,
+        52,
+        52,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Feeder-4 SPSC": [
+        100,
+        26,
+        18,
+        18,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Feeder-3 Solar": [
+        50,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "acts66": {
+      "SPDC Feeder": [
+        100,
+        98,
+        98,
+        85,
+        4,
+        0,
+        0,
+        0
+      ]
+    },
+    "feeders33": [
+      {
+        "feeder": "1&2",
+        "section": "SPDC TAP 1A & 2A",
+        "km": 13.5,
+        "type": "EP",
+        "scope": 364,
+        "done": 352,
+        "wip": 0,
+        "bal": 12,
+        "pct": 97,
+        "spans": {
+          "scope": 365,
+          "done": 92
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "END Tapping",
+        "km": 2.8,
+        "type": "EP",
+        "scope": 56,
+        "done": 6,
+        "wip": 0,
+        "bal": 50,
+        "pct": 11,
+        "spans": {
+          "scope": 57,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "MBI 12",
+        "km": 0.2,
+        "type": "Dog",
+        "scope": 4,
+        "done": 0,
+        "wip": 0,
+        "bal": 4,
+        "pct": 0,
+        "spans": {
+          "scope": 5,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "KDK 462",
+        "km": 0.2,
+        "type": "Dog",
+        "scope": 4,
+        "done": 0,
+        "wip": 0,
+        "bal": 4,
+        "pct": 0,
+        "spans": {
+          "scope": 5,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "MKD 258",
+        "km": 1.8,
+        "type": "Dog",
+        "scope": 36,
+        "done": 26,
+        "wip": 0,
+        "bal": 10,
+        "pct": 72,
+        "spans": {
+          "scope": 37,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "MKD 52",
+        "km": 2.2,
+        "type": "Dog",
+        "scope": 44,
+        "done": 36,
+        "wip": 0,
+        "bal": 8,
+        "pct": 82,
+        "spans": {
+          "scope": 45,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "MKD 211",
+        "km": 1.2,
+        "type": "Dog",
+        "scope": 24,
+        "done": 18,
+        "wip": 0,
+        "bal": 6,
+        "pct": 75,
+        "spans": {
+          "scope": 25,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "1",
+        "section": "MKD 253",
+        "km": 1.3,
+        "type": "Dog",
+        "scope": 26,
+        "done": 19,
+        "wip": 0,
+        "bal": 7,
+        "pct": 73,
+        "spans": {
+          "scope": 27,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "2",
+        "section": "Solar Land WIP",
+        "km": 0,
+        "type": "EP",
+        "scope": 0,
+        "done": 0,
+        "wip": 0,
+        "bal": 0,
+        "pct": 0,
+        "spans": {
+          "scope": 1,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "3",
+        "section": "TAP 3A",
+        "km": 1.5,
+        "type": "EP",
+        "scope": 30,
+        "done": 0,
+        "wip": 0,
+        "bal": 30,
+        "pct": 0,
+        "spans": {
+          "scope": 31,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "3",
+        "section": "Block 2",
+        "km": 0.6,
+        "type": "Dog",
+        "scope": 12,
+        "done": 0,
+        "wip": 0,
+        "bal": 12,
+        "pct": 0,
+        "spans": {
+          "scope": 13,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "MOB 142",
+        "km": 10,
+        "type": "EP",
+        "scope": 200,
+        "done": 0,
+        "wip": 0,
+        "bal": 200,
+        "pct": 0,
+        "spans": {
+          "scope": 201,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "CDP-221",
+        "km": 2.6,
+        "type": "Dog",
+        "scope": 52,
+        "done": 0,
+        "wip": 0,
+        "bal": 52,
+        "pct": 0,
+        "spans": {
+          "scope": 53,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "AMK 264",
+        "km": 0.6,
+        "type": "Dog",
+        "scope": 12,
+        "done": 0,
+        "wip": 0,
+        "bal": 12,
+        "pct": 0,
+        "spans": {
+          "scope": 13,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "MOB 403",
+        "km": 1.2,
+        "type": "Dog",
+        "scope": 24,
+        "done": 0,
+        "wip": 0,
+        "bal": 24,
+        "pct": 0,
+        "spans": {
+          "scope": 25,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "BDK 85",
+        "km": 6.5,
+        "type": "Dog",
+        "scope": 130,
+        "done": 77,
+        "wip": 0,
+        "bal": 53,
+        "pct": 59,
+        "spans": {
+          "scope": 131,
+          "done": 0
+        }
+      },
+      {
+        "feeder": "4",
+        "section": "BDK 25",
+        "km": 1.2,
+        "type": "Dog",
+        "scope": 24,
+        "done": 0,
+        "wip": 0,
+        "bal": 24,
+        "pct": 0,
+        "spans": {
+          "scope": 25,
+          "done": 0
+        }
+      }
+    ],
+    "pss": {
+      "acts": {
+        "Soil Test": {
+          "scope": 1,
+          "done": 1,
+          "wip": 0,
+          "bal": 0,
+          "col": "#90caf9",
+          "unit": "Nos"
+        },
+        "Pre cast Compound Wall": {
+          "scope": 250,
+          "done": 250,
+          "wip": 0,
+          "bal": 0,
+          "col": "#64b5f6",
+          "unit": "Mtr"
+        },
+        "66kv Gantry Fdn": {
+          "scope": 6,
+          "done": 6,
+          "wip": 0,
+          "bal": 0,
+          "col": "#00bcd4",
+          "unit": "Nos"
+        },
+        "33kv Gantry Fdn": {
+          "scope": 20,
+          "done": 20,
+          "wip": 0,
+          "bal": 0,
+          "col": "#00acc1",
+          "unit": "Nos"
+        },
+        "66kv Equip Fdn": {
+          "scope": 35,
+          "done": 35,
+          "wip": 0,
+          "bal": 0,
+          "col": "#0097a7",
+          "unit": "Nos"
+        },
+        "33kv Equip Fdn": {
+          "scope": 73,
+          "done": 72,
+          "wip": 0,
+          "bal": 1,
+          "col": "#006064",
+          "unit": "Nos"
+        },
+        "66kv Gantry Erection": {
+          "scope": 6,
+          "done": 6,
+          "wip": 0,
+          "bal": 0,
+          "col": "#4dd0e1",
+          "unit": "Nos"
+        },
+        "33kv Gantry Erection": {
+          "scope": 20,
+          "done": 20,
+          "wip": 0,
+          "bal": 0,
+          "col": "#80deea",
+          "unit": "Nos"
+        },
+        "66kv Equip Str Erection": {
+          "scope": 32,
+          "done": 32,
+          "wip": 0,
+          "bal": 0,
+          "col": "#00e5ff",
+          "unit": "Nos"
+        },
+        "33kv Equip Str Erection": {
+          "scope": 55,
+          "done": 55,
+          "wip": 0,
+          "bal": 0,
+          "col": "#18ffff",
+          "unit": "Nos"
+        },
+        "66kv Equipment Erection": {
+          "scope": 35,
+          "done": 9,
+          "wip": 0,
+          "bal": 26,
+          "col": "#ff9800",
+          "unit": "Nos"
+        },
+        "33kv Equipment Erection": {
+          "scope": 82,
+          "done": 0,
+          "wip": 0,
+          "bal": 82,
+          "col": "#ff6d00",
+          "unit": "Nos"
+        },
+        "Earth Mat Erection": {
+          "scope": 100,
+          "done": 80,
+          "wip": 0,
+          "bal": 20,
+          "col": "#00bfa5",
+          "unit": "%"
+        },
+        "Main Cable Trench": {
+          "scope": 100,
+          "done": 60,
+          "wip": 0,
+          "bal": 40,
+          "col": "#7c4dff",
+          "unit": "%"
+        },
+        "PSS Foundation": {
+          "scope": 2,
+          "done": 2,
+          "wip": 0,
+          "bal": 0,
+          "col": "#b39ddb",
+          "unit": "Nos"
+        },
+        "PSS Erection": {
+          "scope": 2,
+          "done": 0,
+          "wip": 0,
+          "bal": 2,
+          "col": "#9575cd",
+          "unit": "Nos"
+        },
+        "PSS Testing": {
+          "scope": 2,
+          "done": 0,
+          "wip": 0,
+          "bal": 2,
+          "col": "#7e57c2",
+          "unit": "Nos"
+        },
+        "PSS Commissioning": {
+          "scope": 2,
+          "done": 0,
+          "wip": 0,
+          "bal": 2,
+          "col": "#673ab7",
+          "unit": "Nos"
+        },
+        "CRB Foundation Excavation": {
+          "scope": 100,
+          "done": 100,
+          "wip": 0,
+          "bal": 0,
+          "col": "#66bb6a",
+          "unit": "%"
+        },
+        "CRB Raft & Column": {
+          "scope": 100,
+          "done": 100,
+          "wip": 0,
+          "bal": 0,
+          "col": "#4caf50",
+          "unit": "%"
+        },
+        "Brick Work (GF)": {
+          "scope": 100,
+          "done": 100,
+          "wip": 0,
+          "bal": 0,
+          "col": "#43a047",
+          "unit": "%"
+        },
+        "Roof Slab (GF)": {
+          "scope": 100,
+          "done": 100,
+          "wip": 0,
+          "bal": 0,
+          "col": "#388e3c",
+          "unit": "%"
+        },
+        "Brick Work (FF)": {
+          "scope": 100,
+          "done": 70,
+          "wip": 5,
+          "bal": 30,
+          "col": "#2e7d32",
+          "unit": "%"
+        },
+        "Roof Slab (FF)": {
+          "scope": 100,
+          "done": 0,
+          "wip": 0,
+          "bal": 100,
+          "col": "#1b5e20",
+          "unit": "%"
+        },
+        "Cable Trench (MCR)": {
+          "scope": 100,
+          "done": 0,
+          "wip": 0,
+          "bal": 100,
+          "col": "#a5d6a7",
+          "unit": "%"
+        },
+        "C&R Panel T&C": {
+          "scope": 100,
+          "done": 0,
+          "wip": 0,
+          "bal": 100,
+          "col": "#c8e6c9",
+          "unit": "%"
+        }
+      }
+    },
+    "gss": {
+      "acts": {
+        "66kV Bay Foundations": {
+          "scope": 19,
+          "done": 18,
+          "wip": 0,
+          "bal": 1,
+          "col": "#8bc34a",
+          "unit": "Nos"
+        },
+        "66kV Structure Erection": {
+          "scope": 17,
+          "done": 15,
+          "wip": 0,
+          "bal": 2,
+          "col": "#689f38",
+          "unit": "Nos"
+        },
+        "66kV Equip KPTCL Inspection": {
+          "scope": 19,
+          "done": 3,
+          "wip": 0,
+          "bal": 16,
+          "col": "#558b2f",
+          "unit": "Nos"
+        },
+        "66kV Equip KPTCL Delivery": {
+          "scope": 19,
+          "done": 3,
+          "wip": 0,
+          "bal": 16,
+          "col": "#33691e",
+          "unit": "Nos"
+        },
+        "66kV Equipment Erection": {
+          "scope": 17,
+          "done": 3,
+          "wip": 0,
+          "bal": 14,
+          "col": "#aed581",
+          "unit": "Nos"
+        },
+        "66kV Equipment Testing": {
+          "scope": 17,
+          "done": 0,
+          "wip": 0,
+          "bal": 17,
+          "col": "#c5e1a5",
+          "unit": "Nos"
+        },
+        "Cable Trench": {
+          "scope": 100,
+          "done": 0,
+          "wip": 0,
+          "bal": 100,
+          "col": "#dcedc8",
+          "unit": "%"
+        },
+        "CRB Building": {
+          "scope": 100,
+          "done": 0,
+          "wip": 0,
+          "bal": 100,
+          "col": "#9ccc65",
+          "unit": "%"
+        },
+        "Commissioning": {
+          "scope": 1,
+          "done": 0,
+          "wip": 0,
+          "bal": 1,
+          "col": "#f9a825",
+          "unit": "Nos"
+        }
+      }
+    }
+  },
+  "rowIssues": {
+    "-row_001": {
+      "loc": "ITC-1 South",
+      "type": "Solar",
+      "issue": "Boundary Wall (ITC-1 South): pole drilling on hold 1 week — ROW pending",
+      "opened": "2026-05-04",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_002": {
+      "loc": "Sy.293 North",
+      "type": "Solar",
+      "issue": "Land registration pending; sibling stakeholder blocking peripheral road vehicle movement",
+      "opened": "2026-04-25",
+      "status": "Open",
+      "expClear": "2026-05-20"
+    },
+    "-row_003": {
+      "loc": "Sy.293/291",
+      "type": "Solar",
+      "issue": "11 kV and 440 V transmission lines not yet shifted — ROW clearance pending",
+      "opened": "2026-04-20",
+      "status": "Open",
+      "expClear": "2026-05-25"
+    },
+    "-row_004": {
+      "loc": "Sy.293/291",
+      "type": "Solar",
+      "issue": "SAFETY: Live HT/LT lines pose electrical hazard, restricting safe vehicle & manpower flow",
+      "opened": "2026-04-20",
+      "status": "Open",
+      "expClear": "2026-05-25"
+    },
+    "-row_005": {
+      "loc": "MKD-253",
+      "type": "WTG",
+      "issue": "Hub Preparation hold due to High Wind; Stator & A-section cable looping next-day plan",
+      "opened": "2026-04-20",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_006": {
+      "loc": "MKD-258",
+      "type": "WTG",
+      "issue": "Logistic Pathway Marum filling 500/550m hold — mining inspection by Department",
+      "opened": "2026-03-17",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_007": {
+      "loc": "MBI-12",
+      "type": "WTG",
+      "issue": "T1 Preparation WIP; further work hold — Third-party validation under Technical Review",
+      "opened": "2026-05-05",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_008": {
+      "loc": "BDK-85",
+      "type": "WTG",
+      "issue": "Foundation under Technical Review",
+      "opened": "2026-05-01",
+      "status": "Open",
+      "expClear": "2026-05-20"
+    },
+    "-row_009": {
+      "loc": "KDK-462",
+      "type": "WTG",
+      "issue": "Casting hold — Pathway ROW by Farmer & 100m Pathway Marum filling pending",
+      "opened": "2026-03-11",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_010": {
+      "loc": "AMK-264",
+      "type": "WTG",
+      "issue": "Foundation 60% shuttering hold — Vendor Manpower not available & Vendor Payment Issue",
+      "opened": "2026-03-01",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_011": {
+      "loc": "MKD-211",
+      "type": "WTG",
+      "issue": "2nd GSB filling & compaction hold — Pathway ROW (Farmer Payment Issue)",
+      "opened": "2026-04-07",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_012": {
+      "loc": "MKD-52",
+      "type": "WTG",
+      "issue": "Lease area cleaning hold — ROW (Farmer Payment Issue)",
+      "opened": "2026-04-05",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_013": {
+      "loc": "BDK-25",
+      "type": "WTG",
+      "issue": "Excavation (Hardrock Breaking) hold — Vendor Payment Issue",
+      "opened": "2026-03-31",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_014": {
+      "loc": "MOB-403",
+      "type": "WTG",
+      "issue": "Logistic Pathway Marum filling 800/1300 hold — Vendor Payment Issue",
+      "opened": "2026-04-15",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_015": {
+      "loc": "MOB-142",
+      "type": "WTG",
+      "issue": "Pipe fixing & Water proofing hold — Vendor Manpower not available + Payment Issue",
+      "opened": "2026-02-04",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_016": {
+      "loc": "CDP-221",
+      "type": "WTG",
+      "issue": "3rd-layer backfilling, compaction, FDD & Cranepad scrap WIP — waiting for curing",
+      "opened": "2026-02-02",
+      "status": "Open",
+      "expClear": "2026-05-15"
+    },
+    "-row_017": {
+      "loc": "CDP-193",
+      "type": "WTG",
+      "issue": "Legal case 254/2025 OS-SRCJ Kudligi Brothers — RFC pending court case",
+      "opened": "2026-03-01",
+      "status": "Open",
+      "expClear": "2026-05-31"
+    },
+    "-row_018": {
+      "loc": "BDK-165",
+      "type": "WTG",
+      "issue": "Legal case 14/2026 OS-SRCJ Kudligi Brothers",
+      "opened": "2026-03-01",
+      "status": "Open",
+      "expClear": "2026-05-31"
+    },
+    "-row_019": {
+      "loc": "BLK-400",
+      "type": "WTG",
+      "issue": "Legal Issue (PTCL Land) — Location effectively Cancelled",
+      "opened": "2026-01-06",
+      "status": "Open",
+      "expClear": "2026-06-30"
+    },
+    "-row_020": {
+      "loc": "Feeder-01 NR Infra",
+      "type": "33kV",
+      "issue": "06-span stringing pending — ROW (Farmer not willing); 05 poles shifting & re-routing",
+      "opened": "2026-04-10",
+      "status": "Open",
+      "expClear": "2026-05-20"
+    },
+    "-row_021": {
+      "loc": "Feeder-01 SLV",
+      "type": "33kV",
+      "issue": "06 Pole Erection hold — ROW (Farmer not willing); 20 stay-concrete pending",
+      "opened": "2026-04-12",
+      "status": "Open",
+      "expClear": "2026-05-20"
+    },
+    "-row_022": {
+      "loc": "Feeder-04 Saishreeja",
+      "type": "33kV",
+      "issue": "07 Pole Erection — ROW Not Cleared (Farmer not willing)",
+      "opened": "2026-04-15",
+      "status": "Open",
+      "expClear": "2026-05-20"
+    },
+    "-row_023": {
+      "loc": "EHV Tower-37",
+      "type": "EHV",
+      "issue": "Tower Location land ROW Issue — open since 21-Nov-2025",
+      "opened": "2025-11-21",
+      "status": "Open",
+      "expClear": "2026-05-25"
+    },
+    "-row_024": {
+      "loc": "EHV Tower-53",
+      "type": "EHV",
+      "issue": "Tower Location ROW Issue — Farmers Demand High after Excavation",
+      "opened": "2025-07-28",
+      "status": "Open",
+      "expClear": "2026-05-30"
+    },
+    "-row_025": {
+      "loc": "BDK-183",
+      "type": "WTG",
+      "issue": "Registration completed — Land Leased count now 16/26. Foundation work to begin.",
+      "opened": "2026-05-10",
+      "status": "Closed",
+      "expClear": "2026-05-11"
+    }
+  },
+  "milestones": {
+    "-ms_001": {
+      "date": "2026-04-30",
+      "label": "MBI-12 Nacelle Installed (DONE)",
+      "mod": "WTG"
+    },
+    "-ms_002": {
+      "date": "2026-05-03",
+      "label": "MBI-12 Rotor Assembly Completed (DONE)",
+      "mod": "WTG"
+    },
+    "-ms_003": {
+      "date": "2026-05-06",
+      "label": "MBI-12 Rotor Erection + Boom Down Completed (DONE)",
+      "mod": "WTG"
+    },
+    "-ms_004": {
+      "date": "2026-05-10",
+      "label": "BDK-183 Land Registration Completed — 16th location",
+      "mod": "WTG"
+    },
+    "-ms_005": {
+      "date": "2026-05-11",
+      "label": "PSS MCR Brick Work FF reached 70% (+5% today)",
+      "mod": "BOP"
+    },
+    "-ms_006": {
+      "date": "2026-05-13",
+      "label": "GSS Isolator Foundation — Material & manpower expected",
+      "mod": "BOP"
+    },
+    "-ms_007": {
+      "date": "2026-05-15",
+      "label": "Multiple WTG ROW issues — expected resolution",
+      "mod": "WTG"
+    },
+    "-ms_008": {
+      "date": "2026-05-15",
+      "label": "66kV EHV Line — Stringing target (currently 0.455 km)",
+      "mod": "BOP"
+    },
+    "-ms_009": {
+      "date": "2026-05-15",
+      "label": "Solar Module Installation Target — 1,500 Nos / day",
+      "mod": "Solar"
+    },
+    "-ms_010": {
+      "date": "2026-05-20",
+      "label": "33kV Feeder-1 SPDC — Span stringing target (Wind)",
+      "mod": "BOP"
+    },
+    "-ms_011": {
+      "date": "2026-05-25",
+      "label": "PSS MCR Roof Slab (FF) — Casting start",
+      "mod": "BOP"
+    },
+    "-ms_012": {
+      "date": "2026-05-31",
+      "label": "CDP-193 / BDK-165 Legal cases — Expected resolution",
+      "mod": "WTG"
+    },
+    "-ms_013": {
+      "date": "2026-06-15",
+      "label": "PSS — 66kV Equipment Erection (35 Nos) target",
+      "mod": "BOP"
+    },
+    "-ms_014": {
+      "date": "2026-06-30",
+      "label": "33kV Solar Feeder Energisation — Target",
+      "mod": "BOP"
+    },
+    "-ms_015": {
+      "date": "2026-09-01",
+      "label": "WTG First Power — Target",
+      "mod": "WTG"
+    },
+    "-ms_016": {
+      "date": "2026-12-31",
+      "label": "Solar Full Commissioning — Target",
+      "mod": "Solar"
+    },
+    "-ms_017": {
+      "date": "2027-03-31",
+      "label": "SCOD — Final COD",
+      "mod": "Overall"
+    }
+  },
+  "hse": {
+    "observations": {
+      "-hse_obs_001": {
+        "loc": "Solar ITC-1",
+        "obs": "Live 11kV/440V transmission lines near work area — not yet shifted (electrical hazard)",
+        "photo": "",
+        "vendor": "Solar EPC",
+        "raisedDate": "06-05-2026",
+        "raisedBy": "Site Safety Officer",
+        "status": "Open",
+        "closedBy": "",
+        "closedPhoto": "",
+        "avgTime": "—",
+        "risk": "Unsafe Condition",
+        "branch": 0,
+        "day": 6,
+        "ts": 1778636146665
+      },
+      "-hse_obs_002": {
+        "loc": "MBI-12",
+        "obs": "T1 working at height — third-party harness validation under technical review",
+        "photo": "",
+        "vendor": "HML",
+        "raisedDate": "05-05-2026",
+        "raisedBy": "Mastan Ali",
+        "status": "Closed",
+        "closedBy": "Laxman",
+        "closedPhoto": "",
+        "avgTime": "2 Hrs",
+        "risk": "Near Miss",
+        "branch": 0,
+        "day": 5,
+        "ts": 1778636146665
+      },
+      "-hse_obs_003": {
+        "loc": "MKD-253",
+        "obs": "Hub Preparation — work hold due to high wind conditions (above threshold)",
+        "photo": "",
+        "vendor": "HML",
+        "raisedDate": "11-05-2026",
+        "raisedBy": "Site Engineer",
+        "status": "Closed",
+        "closedBy": "Site Manager",
+        "closedPhoto": "",
+        "avgTime": "1 Hr",
+        "risk": "Unsafe Act / Condition",
+        "branch": 0,
+        "day": 11,
+        "ts": 1778636146665
+      }
+    },
+    "employees": {
+      "BE28": {
+        "code": "BE28",
+        "name": "Chandrashekhar Angadi",
+        "score": 82,
+        "photo": ""
+      },
+      "BE27": {
+        "code": "BE27",
+        "name": "Abdul",
+        "score": 76,
+        "photo": ""
+      },
+      "BE32": {
+        "code": "BE32",
+        "name": "Mahesh",
+        "score": 70,
+        "photo": ""
+      },
+      "BE03": {
+        "code": "BE03",
+        "name": "Manjunath",
+        "score": 88,
+        "photo": ""
+      },
+      "BE12": {
+        "code": "BE12",
+        "name": "Shashikant",
+        "score": 74,
+        "photo": ""
+      },
+      "BE14": {
+        "code": "BE14",
+        "name": "Arul",
+        "score": 79,
+        "photo": ""
+      },
+      "SW-01": {
+        "code": "SW-01",
+        "name": "AA",
+        "score": 53,
+        "photo": ""
+      },
+      "SW-02": {
+        "code": "SW-02",
+        "name": "BB",
+        "score": 56,
+        "photo": ""
+      },
+      "SW-03": {
+        "code": "SW-03",
+        "name": "CC",
+        "score": 71,
+        "photo": ""
+      },
+      "SW-05": {
+        "code": "SW-05",
+        "name": "EE",
+        "score": 81,
+        "photo": ""
+      },
+      "SW-10": {
+        "code": "SW-10",
+        "name": "EkE",
+        "score": 91,
+        "photo": ""
+      }
+    }
+  }
+}

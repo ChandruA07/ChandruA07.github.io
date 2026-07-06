@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Continuum Green Energy – SWPPL 140MW Hybrid Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/page-logo.css">
+<link rel="stylesheet" href="css/advanced.css">
+<link rel="stylesheet" href="css/ui-polish.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07101f">
+<link rel="apple-touch-icon" href="continuumlogo.png">
+</head>
+
+<body>
+
+<div id="ldr"></div>
+
+<!-- Overlays -->
+<div id="overlay-login"></div>
+<div id="overlay-modals"></div>
+
+<div id="app">
+  <div id="sidebar-mount"></div>
+  <div id="mn">
+    <div id="topbar-mount"></div>
+    <div id="ct">
+      <div id="views-mount"></div>
+    </div>
+    <div id="footer-mount"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INLINED VIEW PARTIALS — SINGLE-FILE MODE
+     Every file from views/ is embedded below as an inert <template>.
+     loader.js reads these instead of fetch()-ing over the network, so
+     the dashboard runs from file://, GitHub Pages, Netlify, or any static
+     Hosting with ZERO configuration and NO local web server.
+     (The views/ folder is kept in the repo as the editable source; if
+     you change a partial, re-run tools/inline_views.py to refresh this
+     block, or just delete the matching <template> to use the dev
+     fetch() fallback with a local server.)
+     ═══════════════════════════════════════════════════════════════ -->
+<template data-partial="views/login.html">
+<div id="lw" class="lw" style="display:none;">
+  <div class="lb">
+    <div class="li" id="l-i">🔐</div>
+    <div class="lt" id="l-t">Sign in</div>
+    <div class="ls" id="l-s">
+      Sign in to enable edits. Access control is enforced server-side by
+      Realtime Database rules — this dialog is the front door, not the lock.
+    </div>
+
+    <div class="fg" style="text-align:left;margin-top:4px;">
+      <label class="fl">Email</label>
+      <input class="fi" id="l-u" type="text" autocomplete="username" placeholder="you@company.com">
+    </div>
+    <div class="fg" style="text-align:left;">
+      <label class="fl">Password</label>
+      <input class="fi" id="l-p" type="password" autocomplete="current-password"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')auth.doLoginForm()">
+    </div>
+
+    <div class="le" id="l-e"></div>
+
+    <div style="display:flex;gap:7px;margin-top:7px;">
+      <button class="btn"     style="flex:1;" onclick="auth.closeLogin()">Cancel</button>
+      <button class="btn bta" style="flex:1;" data-role="submit" onclick="auth.doLoginForm()">Sign in</button>
+    </div>
+
+    <div style="margin-top:9px;padding:8px 10px;background:var(--card3);border-radius:6px;
+                font-size:9px;color:var(--t3);text-align:left;line-height:1.6;">
+      <b style="color:var(--t2);">Seeded accounts</b> (provisioned per docs/DEPLOYMENT.md; passwords are set in the Firebase Console)<br>
+      • Solar <code>solar@swppl.demo</code> · WTG <code>wtg@swppl.demo</code> · BOP <code>bop@swppl.demo</code><br>
+      • Land <code>land@swppl.demo</code> · Procurement <code>proc@swppl.demo</code> · Store <code>store@swppl.demo</code><br>
+      • Planning <code>plan@swppl.demo</code> · Site Manager <code>admin@swppl.demo</code> (full access)
+      <br><br>
+      Each role can edit only its own module; Site Manager can edit everything.
+      Writes outside your role are rejected by the database itself, even from DevTools.
+    </div>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/modal-pov.html">
+<div class="ov" id="pov"><div class="modal"><div class="mhd"><div class="mtt" id="p-t">Progress Entry</div><button class="mcl" onclick="cov('pov')">✕</button></div><div id="p-b"></div></div></div>
+</template>
+
+<template data-partial="views/modal-tov.html">
+<div class="ov" id="tov"><div class="modal"><div class="mhd"><div class="mtt" id="t-t">Detail View</div><button class="mcl" onclick="cov('tov')">✕</button></div><div id="t-b"></div></div></div>
+</template>
+
+<template data-partial="views/modal-lov.html">
+<div class="ov" id="lov"><div class="modal" style="width:min(660px,96vw);"><div class="mhd"><div class="mtt" id="lm-t">Land Detail</div><button class="mcl" onclick="cov('lov')">✕</button></div><div id="lm-b"></div></div></div>
+</template>
+
+<template data-partial="views/sidebar.html">
+<div id="sb">
+  <div class="sbl">
+    <div class="sbi" style="background:linear-gradient(135deg,#2e7d32,#43a047);width:38px;height:38px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;padding:2px;">
+      <img src="continuumlogo.png" style="width:34px;height:34px;object-fit:contain;" onerror="this.outerHTML='<span style=font-size:20px>🌿</span>'">
+    </div>
+    <div class="sbt">
+      <div class="t1" style="color:#43a047;">Continuum</div>
+      <div class="t2">SWPPL 140MW Hybrid EPC</div>
+    </div>
+  </div>
+  <div class="sbv">
+    <div class="ss">Overview</div>
+    <div class="ni on" id="nav-home" onclick="nav('home')">
+      <span class="nx"><img src="continuumlogo.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" onerror="this.outerHTML='🏠'"></span><span class="nl">Dashboard</span>
+    </div>
+    <div class="ni" id="nav-map" onclick="nav('map')">
+      <span class="nx">🗺️</span><span class="nl">Site Map</span>
+    </div>
+    <div class="ss">Construction</div>
+    <div class="ni" id="nav-wtg" onclick="nav('wtg')">
+      <span class="nx"><img src="turbine.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" onerror="this.outerHTML='⚡'"></span><span class="nl">WTG – 26 Turbines</span>
+    </div>
+    <div class="ni" id="nav-zp" onclick="nav('zp')">
+      <span class="nx">🏬</span><span class="nl">Zero Point</span>
+    </div>
+    <div class="ni" id="nav-solar" onclick="nav('solar')">
+      <span class="nx"><img src="solar.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" onerror="this.outerHTML='☀️'"></span><span class="nl">Solar – 70.4MW</span>
+    </div>
+    <div class="ni" id="nav-bop" onclick="nav('bop')">
+      <span class="nx"><img src="bop.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" onerror="this.outerHTML='⚙️'"></span><span class="nl">BOP</span>
+    </div>
+    <div class="ni" id="nav-land" onclick="nav('land')">
+      <span class="nx"><img src="land.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" onerror="this.outerHTML='🌍'"></span><span class="nl">Land</span>
+    </div>
+    <div class="ss">Planning</div>
+    <div class="ni" id="nav-pod" onclick="nav('pod')">
+      <span class="nx">📋</span><span class="nl">POD / Daily Entry</span>
+    </div>
+    <div class="ss">Operations</div>
+    <div class="ni" id="nav-safety" onclick="nav('safety')">
+      <span class="nx">🦺</span><span class="nl">HSE Portal</span>
+    </div>
+    <div class="ss">Supply Chain</div>
+    <div class="ni" id="nav-procurement" onclick="nav('procurement')">
+      <span class="nx">🛒</span><span class="nl">Procurement</span>
+    </div>
+    <div class="ni" id="nav-vendors" onclick="nav('vendors')">
+      <span class="nx">🏢</span><span class="nl">Vendors</span>
+    </div>
+    <div class="ni" id="nav-inventory" onclick="nav('inventory')">
+      <span class="nx">📦</span><span class="nl">Inventory</span>
+    </div>
+    <div class="ss">PMO</div>
+    <div class="ni" id="nav-planning" onclick="nav('planning')">
+      <span class="nx">🗓️</span><span class="nl">Planning</span>
+    </div>
+    <div class="ni" id="nav-documents" onclick="nav('documents')">
+      <span class="nx">🗂️</span><span class="nl">Documents</span>
+    </div>
+    <div class="ni" id="nav-reports" onclick="nav('reports')">
+      <span class="nx">📈</span><span class="nl">Reports</span>
+    </div>
+    <div class="ni" id="nav-audit" onclick="nav('audit')">
+      <span class="nx">🧾</span><span class="nl">Audit Log</span>
+    </div>
+    <div class="ni" id="nav-manpower" onclick="nav('manpower')">
+      <span class="nx">👷</span><span class="nl">Manpower and Machinery</span>
+    </div>
+    <div class="ss">Setup</div>
+    <div class="ni" id="nav-creator" onclick="openProjectCreator()">
+      <span class="nx">🏗️</span><span class="nl">New Project / Add Units</span>
+    </div>
+  </div>
+  <div class="sbb">
+    <div class="ni" onclick="toggleTheme()"><span class="nx" id="th-i">🌙</span><span class="nl">Theme</span></div>
+    <div class="ni" onclick="window.print()"><span class="nx">📄</span><span class="nl">Export PDF</span></div>
+    <div class="ni" onclick="exportExcel()"><span class="nx">📊</span><span class="nl">Export Excel</span></div>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/topbar.html">
+<div id="tb">
+  <button id="tbt" onclick="toggleSB()" data-tt="Collapse / expand sidebar">☰</button>
+  <div id="bc">
+    <span class="bci last" style="display:flex;align-items:center;gap:8px;">
+      <img src="continuumlogo.png" style="height:22px;object-fit:contain;vertical-align:middle;" onerror="this.style.display='none'">
+      <span style="color:#1565c0;font-weight:800;">Continuum</span>
+      <span style="color:var(--t3);font-size:9px;">|</span>
+      <span style="color:var(--t2);font-size:9px;">Shubh Wind Energy Pvt Ltd – 140MW Hybrid EPC</span>
+    </span>
+  </div>
+  <div class="tbr">
+    <!-- Search -->
+    <button class="btn bts" onclick="openSearch()" data-tt="Global search — Ctrl+K" style="gap:5px;">
+      🔍 <kbd style="font-size:7px;background:var(--b1);border-radius:3px;padding:1px 4px;color:var(--t3);">Ctrl+K</kbd>
+    </button>
+    <!-- Date badge -->
+    <div style="font-size:9px;color:var(--t3);background:var(--card);border:1px solid var(--b1);padding:3px 9px;border-radius:5px;">
+      📅 <span id="today-date">02-May-2026</span>
+    </div>
+    <!-- Theme toggle -->
+    <div class="theme-btn" onclick="toggleTheme()" data-tt="Toggle Dark / Light mode">
+      <div class="theme-orb" id="adv-theme-orb">🌙</div>
+      <span class="theme-lbl" id="adv-theme-lbl">Dark</span>
+    </div>
+    <!-- Export -->
+    <button class="btn btn-pdf bts" onclick="exportToPDF('SWPPL EPC Dashboard')" data-tt="Export current page as PDF">📄 PDF</button>
+    <button class="btn btn-csv bts" onclick="exportToCSV('SWPPL EPC Dashboard')" data-tt="Export all tables as CSV / Excel">📊 Excel</button>
+    <!-- Supabase live-connection status pill (driven by realtime channel state in supabase-init.js) -->
+    <span id="fb-status-pill" class="btn bts" data-tt="Live connection to Supabase Realtime"
+          style="gap:5px;font-weight:600;cursor:default;background:transparent;border:1px solid var(--b1);">
+      ☁️ Online
+    </span>
+    <!-- Edit unlock — opens password prompt; not real auth, demo only -->
+    <button id="auth-login-btn" class="btn bta bts" onclick="auth.openLogin()" data-tt="Enter demo password to enable edits in this tab" style="gap:5px;font-weight:600;">
+      🔓 Unlock edits
+    </button>
+    <button id="auth-user-btn" class="btn bts" onclick="openUserPanel()" data-tt="Demo user info" style="gap:5px;font-weight:600;display:none;">
+      👤 <span id="auth-user-name">—</span>
+    </button>
+    <button id="auth-logout-btn" class="btn bts" onclick="authLogoutClick()" data-tt="Lock edits in this tab" style="display:none;">
+      🔒 Lock edits
+    </button>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/view-home.html">
+<!-- ════ HOME DASHBOARD ════ -->
+<div class="view on" id="view-home">
+
+  <!-- ── HEADER ── -->
+  <div class="dash-header">
+    <div class="dash-logo">
+      <img src="continuumlogo.png" style="height:52px;object-fit:contain;" onerror="this.style.display='none'">
+    </div>
+    <div>
+      <div class="dash-title" style="color:#1565c0;font-size:23px;font-weight:800;letter-spacing:.3px;">Continuum Green Energy</div>
+      <div class="dash-sub">Shubh Wind Energy Private Limited &nbsp;|&nbsp; 140 MW Hybrid (Solar + Wind) Project – EPC Dashboard</div>
+    </div>
+    <!-- ── Header notification marquee — smooth scrolling project updates ── -->
+    <div class="hero-marquee" id="hero-marquee" data-tt="Live project updates — hover to pause">
+      <div class="hero-marquee-badge"><span class="hmq-dot"></span><span>LIVE</span><span style="font-size:7px;letter-spacing:1px;opacity:.8;">UPDATES</span></div>
+      <div class="hero-marquee-viewport">
+        <div class="hero-marquee-track" id="hero-marquee-track"></div>
+      </div>
+    </div>
+    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <button class="btn bts" onclick="openScopeManager()" data-tt="Edit MW / tower counts and ITC scopes">⚙️ Scope Manager</button>
+      <div style="font-size:8px;color:var(--t3);" id="last-saved-ts">💾 Auto-save active</div>
+    </div>
+  </div>
+
+  <!-- ── STICKY SECTION NAV ── -->
+  <div class="adv-sec-nav" id="home-secnav">
+    <div class="sni act" onclick="sniClick(this,'home-kpi-row',event)">📊 KPIs</div>
+    <div class="sni"     onclick="sniClick(this,'home-work-table-wrap',event)">📋 Daily Work Table</div>
+    <div class="sni"     onclick="sniClick(this,'home-row3',event)">🚧 Row Tracker &amp; S-Curve</div>
+    <div class="sni"     onclick="sniClick(this,'home-gantt-wrap',event)">📅 Gantt</div>
+  </div>
+
+  <!-- ── DATE PICKER (daily snapshot view) ── -->
+  <div id="home-dp-bar"></div>
+
+  <!-- ── ROW 1: KPI CARDS ── -->
+  <div class="sq-kpi-row" id="home-kpi-row" style="scroll-margin-top:100px;"></div>
+
+  <!-- ── ROW 2: DAILY WORK TABLE (replaces previous chart-strip) ──
+       4-column read-only table fed by /pod + /pod-status.
+       Columns: POD | Live / Today's Work | Pending & Remarks | Next Day Plan
+       All editing controls live on the location subpages (Solar / WTG / BOP).
+  -->
+  <div class="pnl" id="home-work-table-wrap" style="margin-bottom:14px;scroll-margin-top:100px;padding:16px 18px;">
+    <div class="ph2" style="margin-bottom:14px;">
+      <div class="pt" style="font-weight:800;font-size:17px;letter-spacing:.2px;">📋 Daily Work Status — Plan vs Live vs Pending vs Next Day</div>
+      <span style="font-size:12px;color:var(--t2);font-weight:600;" id="home-work-table-date">—</span>
+    </div>
+    <div id="home-work-table"></div>
+  </div>
+
+  <!-- ── ROW 3: Row Tracker | S-Curve | Milestones ──
+       (POD & Daily Progress panel removed per requirement; replaced by Row Tracker.)
+  -->
+  <div id="home-row3" style="display:grid;grid-template-columns:1fr 1.3fr 0.9fr;gap:12px;margin-bottom:14px;scroll-margin-top:100px;">
+
+    <!-- Row Tracker (replaces POD & Daily Progress) -->
+    <div class="pnl" id="home-row-tracker" style="padding:12px 14px;"></div>
+
+    <!-- Planned vs Actual S-Curve -->
+    <div class="pnl" style="padding:12px 14px;">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">📈 Planned vs Actual — S-Curve</div>
+        <span style="font-size:9px;color:var(--t3);" id="home-scurve-range">—</span>
+      </div>
+      <div class="ch h280"><canvas id="ch-pva"></canvas></div>
+    </div>
+
+    <!-- Milestones -->
+    <div class="pnl" style="padding:12px 14px;">
+      <div class="ph2">
+        <div class="pt" style="font-weight:700;">📅 Scheduled Milestones</div>
+        <button class="btn bts" style="font-size:8px;" onclick="openMilestoneForm()">+ Add</button>
+      </div>
+      <div id="home-milestones" style="font-size:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 4 REMOVED: Daily Progress Feed and Submit Daily Progress sections
+       were removed per requirement. They are no longer part of the dashboard. -->
+
+  <!-- ── ROW 5: PROJECT GANTT (Site Manager edits via openGanttEditor) ── -->
+  <div class="pnl" id="home-gantt-wrap" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">📅 Project Gantt — Planned vs Actual</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn bts" style="font-size:8px;background:var(--ac);color:var(--bg);border:none;font-weight:600;"
+                onclick="reqLogin('all',openGanttEditor)" data-tt="Site Manager only — edit Gantt activities">✏️ Edit Gantt</button>
+        <button class="btn bts" style="font-size:8px;" onclick="openDrilldown('Gantt Help','Click a bar to drill down into timeline detail. Site Manager can edit activities via ✏️ Edit Gantt.')" data-tt="How to use the Gantt">ℹ️ Help</button>
+      </div>
+    </div>
+    <div id="home-gantt"></div>
+  </div>
+
+</div><!-- /view-home -->
+
+</template>
+
+<template data-partial="views/view-solar.html">
+<div class="view" id="view-solar" style="position:relative;">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--sol);display:flex;align-items:center;gap:8px;">
+      <img src="solar.png" style="height:26px;object-fit:contain;vertical-align:middle;" onerror="this.style.display='none'">
+      Solar 70.4 MW total | 6 ITCs (13.2×4 + 8.8×2)
+    </div>
+  </div>
+  <div id="sol-dp-bar"></div>
+  <div class="kr" id="sol-kr"></div>
+
+  <!-- ── ITC ROWS (full-width, replaces small 6-up grid) ── -->
+  <div class="ph2" style="margin-bottom:8px;">
+    <div class="pt">ITC Summary — Click any ITC for activity detail</div>
+  </div>
+  <div class="itcg-rows" id="itc-cards"></div>
+
+  <!-- ── POD / Daily Work Sub-section (Solar only) ── -->
+  <div class="pnl" id="sol-pod-section" style="margin-top:14px;scroll-margin-top:100px;padding:12px 14px;">
+    <div class="ph2" style="margin-bottom:10px;">
+      <div class="pt" style="font-weight:700;">📋 Solar — POD &amp; Daily Work Status (Today)</div>
+      <button class="btn btsol bts" onclick="nav('pod')">+ Submit POD</button>
+    </div>
+    <div id="sol-pod-list"></div>
+  </div>
+
+  <!-- ── Next Day Plan editor (Solar) ── -->
+  <div class="pnl ndp-card" id="sol-ndp-section" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">➜ Solar — Next Day Plan (Tomorrow)</div>
+      <button class="btn btsol bts" onclick="reqLogin('solar', openSolarNdpForm)">+ Add Next Day Plan</button>
+    </div>
+    <div id="sol-ndp-list" class="ndp-list"></div>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/view-itc.html">
+<div class="view" id="view-itc"><div class="bk" onclick="nav('solar')">← Solar</div><div id="itc-det"></div></div>
+</template>
+
+<template data-partial="views/view-wtg.html">
+<div class="view" id="view-wtg">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--wtg);display:flex;align-items:center;gap:8px;">
+      <img src="turbine.png" style="height:28px;object-fit:contain;vertical-align:middle;" onerror="this.style.display='none'">
+      WTG 70.2MW – Senvion 2.7MW x 26 Nos
+    </div>
+    <div class="phs">Civil 30% + Mechanical 50% + USS 10% + Supply 10%</div>
+  </div>
+  <div id="wtg-dp-bar"></div>
+  <div class="kr" id="wtg-kr"></div>
+
+<div id="wtg-tc"></div>
+  <div id="wtg-tab-ct"></div>
+
+  <!-- ── POD / Daily Work Status (WTG) ── -->
+  <div class="pnl" id="wtg-pod-section" style="margin-top:14px;scroll-margin-top:100px;padding:12px 14px;">
+    <div class="ph2" style="margin-bottom:10px;">
+      <div class="pt" style="font-weight:700;">📋 WTG — POD &amp; Daily Work Status (Today)</div>
+      <button class="btn btwt bts" onclick="nav('pod')">+ Submit POD</button>
+    </div>
+    <div id="wtg-pod-list"></div>
+  </div>
+
+  <!-- ── Next Day Plan editor (WTG) ── -->
+  <div class="pnl ndp-card" id="wtg-ndp-section" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">➜ WTG — Next Day Plan (Tomorrow)</div>
+      <button class="btn btwt bts" onclick="reqLogin('wtg', openWtgNdpForm)">+ Add Next Day Plan</button>
+    </div>
+    <div id="wtg-ndp-list" class="ndp-list"></div>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/view-zp.html">
+<div class="view" id="view-zp">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--wtg);display:flex;align-items:center;gap:8px;">
+      <span style="font-size:24px;">🏬</span>
+      Zero Point — Central Store Yard
+    </div>
+    <div class="phs">Material warehouse · per-unit inventory · mobilization tracker</div>
+  </div>
+  <div id="zp-body"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-land.html">
+<div class="view" id="view-land">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph"><div class="pht" style="color:var(--land)">🌍 Land Dashboard</div><div class="phs">Solar Land 50% + WTG Land 50% | Total Required vs Procured vs Balance</div></div>
+  <div class="kr" id="land-kr"></div>
+  <div class="g2">
+    <div class="pnl"><div class="ph2"><div class="pt">📊 Land Status — Completed / WIP / Pending</div></div><div class="ch h240"><canvas id="ch-land-cwip"></canvas></div></div>
+    <div class="pnl"><div class="ph2"><div class="pt">🥧 Land Distribution</div></div><div class="ch h240"><canvas id="ch-land-pie"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="pnl" style="cursor:pointer;" onclick="nav('landwtg')"><div class="ph2"><div class="pt">🌬️ WTG Land (50%)</div><span class="chip cy">26 Locations</span></div><div class="ch h200"><canvas id="ch-wtg-land-s"></canvas></div><div style="text-align:center;font-size:9px;color:var(--ac);margin-top:5px;">Click to manage →</div></div>
+    <div class="pnl" style="cursor:pointer;" onclick="nav('landsol')"><div class="ph2"><div class="pt">☀️ Solar Land (50%)</div><span class="chip cb">4 Blocks</span></div><div class="ch h200"><canvas id="ch-sol-land-s"></canvas></div><div style="text-align:center;font-size:9px;color:var(--ac);margin-top:5px;">Click to manage →</div></div>
+  </div>
+</div>
+</template>
+
+<template data-partial="views/view-landwtg.html">
+<div class="view" id="view-landwtg">
+  <div class="bk" onclick="nav('land')">← Land Dashboard</div>
+  <div class="ph"><div class="pht" style="color:var(--wtg)">📍 WTG Land Management</div><div class="phs">26 locations | Each = 1.92% of WTG Land | 10 stages each = 100%</div></div>
+  <div class="kr" id="wtgland-kr"></div>
+  <div class="pnl"><div class="ph2"><div class="pt">📊 Stage Completion (all 26 locations)</div></div><div class="ch h240"><canvas id="ch-wtgland-stages"></canvas></div></div>
+  <div class="pnl">
+    <div class="ph2">
+      <div class="pt">📍 All 26 WTG Land Locations</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn bta bts" onclick="openAddWtgLand()">➕ Add Location</button>
+        <button class="btn bts" onclick="reqLogin('wtg',()=>openWtgLandProg())">📊 Update Progress</button>
+      </div>
+    </div>
+    <div class="tsc"><table class="tbl" id="wtgland-tbl"></table></div>
+  </div>
+</div>
+</template>
+
+<template data-partial="views/view-landsol.html">
+<div class="view" id="view-landsol">
+  <div class="bk" onclick="nav('land')">← Land Dashboard</div>
+  <div class="ph"><div class="pht" style="color:var(--sol)">🌾 Solar Land Management</div><div class="phs">4 Blocks | Activities: 10 each = 100% | Lease Register</div></div>
+  <div class="kr" id="solland-kr"></div>
+  <div class="g2">
+    <div class="pnl"><div class="ph2"><div class="pt">📊 Block Status (Confirmed / Balance)</div></div><div class="ch h200"><canvas id="ch-solland"></canvas></div></div>
+    <div class="pnl"><div class="ph2"><div class="pt">📋 Block Summary</div><button class="btn btsol bts" onclick="openSolLeaseAdd()">➕ Add Lease</button></div><div id="sol-land-summary"></div></div>
+  </div>
+  <div class="pnl">
+    <div class="ph2"><div class="pt">📑 Solar Lease Document Register</div><button class="btn bta bts" onclick="openSolLeaseAdd()">➕ Add Entry</button></div>
+    <div class="tsc"><table class="tbl" id="sol-lease-tbl"></table></div>
+  </div>
+</div>
+</template>
+
+<template data-partial="views/view-bop.html">
+<div class="view" id="view-bop">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph"><div class="pht" style="color:var(--bop)">⚙️ BOP – Balance of Plant</div><div class="phs">33kV Lines | 66kV Towers | PSS | GSS | Click a section for detail</div></div>
+  <div class="kr" id="bop-kr"></div>
+  <div class="bop4g">
+    <div class="bsc bsc-33" onclick="nav('bop-33kv')"><div style="font-size:24px;margin-bottom:5px;">🔋</div><div style="font-family:var(--f2);font-size:14px;font-weight:700;color:var(--kv3)">33 kV Lines</div><div style="font-size:8px;color:var(--t3);margin-bottom:6px;">SPDC 13km|SPSC 9km|Sai Sreeja 14km</div><div style="font-family:var(--f2);font-size:24px;font-weight:700;color:var(--kv3)" id="bop33-pct">0%</div><div class="mc-bw" style="margin-top:5px;"><div class="mc-bf" id="bop33-bar" style="width:0;background:var(--kv3)"></div></div></div>
+    <div class="bsc bsc-66" onclick="nav('bop-66kv')"><div style="font-size:24px;margin-bottom:5px;">🔌</div><div style="font-family:var(--f2);font-size:14px;font-weight:700;color:var(--kv6)">66 kV Towers</div><div style="font-size:8px;color:var(--t3);margin-bottom:6px;">66 Towers | Krishna Elec | Zelvo</div><div style="font-family:var(--f2);font-size:24px;font-weight:700;color:var(--kv6)" id="bop66-pct">0%</div><div class="mc-bw" style="margin-top:5px;"><div class="mc-bf" id="bop66-bar" style="width:0;background:var(--kv6)"></div></div></div>
+    <div class="bsc bsc-pss" onclick="nav('bop-pss')"><div style="font-size:24px;margin-bottom:5px;">🏭</div><div style="font-family:var(--f2);font-size:14px;font-weight:700;color:var(--pss)">PSS</div><div style="font-size:8px;color:var(--t3);margin-bottom:6px;">Gantry|Equipment|Earth Mat|MCR</div><div style="font-family:var(--f2);font-size:24px;font-weight:700;color:var(--pss)" id="boppss-pct">0%</div><div class="mc-bw" style="margin-top:5px;"><div class="mc-bf" id="boppss-bar" style="width:0;background:var(--pss)"></div></div></div>
+    <div class="bsc bsc-gss" onclick="nav('bop-gss')"><div style="font-size:24px;margin-bottom:5px;">⚡</div><div style="font-family:var(--f2);font-size:14px;font-weight:700;color:var(--gss)">GSS</div><div style="font-size:8px;color:var(--t3);margin-bottom:6px;">Transformer|Switchyard|Protection</div><div style="font-family:var(--f2);font-size:24px;font-weight:700;color:var(--gss)" id="bopgss-pct">0%</div><div class="mc-bw" style="margin-top:5px;"><div class="mc-bf" id="bopgss-bar" style="width:0;background:var(--gss)"></div></div></div>
+  </div>
+  <div class="pnl"><div class="ph2"><div class="pt">📊 BOP Section Progress</div></div><div class="ch h240"><canvas id="ch-bop-sec"></canvas></div></div>
+
+  <!-- ── POD / Daily Work Status (BOP) ── -->
+  <div class="pnl" id="bop-pod-section" style="margin-top:14px;scroll-margin-top:100px;padding:12px 14px;">
+    <div class="ph2" style="margin-bottom:10px;">
+      <div class="pt" style="font-weight:700;">📋 BOP — POD &amp; Daily Work Status (Today)</div>
+      <button class="btn btbo bts" onclick="nav('pod')">+ Submit POD</button>
+    </div>
+    <div id="bop-pod-list"></div>
+  </div>
+
+  <!-- ── Next Day Plan editor (BOP) ── -->
+  <div class="pnl ndp-card" id="bop-ndp-section" style="scroll-margin-top:100px;">
+    <div class="ph2">
+      <div class="pt" style="font-weight:700;">➜ BOP — Next Day Plan (Tomorrow)</div>
+      <button class="btn btbo bts" onclick="reqLogin('bop', openBopNdpForm)">+ Add Next Day Plan</button>
+    </div>
+    <div id="bop-ndp-list" class="ndp-list"></div>
+  </div>
+</div>
+
+</template>
+
+<template data-partial="views/view-bop-33kv.html">
+<div class="view" id="view-bop-33kv"><div id="bop-33kv-ct"></div></div>
+</template>
+
+<template data-partial="views/view-bop-66kv.html">
+<div class="view" id="view-bop-66kv"><div id="bop-66kv-ct"></div></div>
+</template>
+
+<template data-partial="views/view-bop-pss.html">
+<div class="view" id="view-bop-pss"><div id="bop-pss-ct"></div></div>
+</template>
+
+<template data-partial="views/view-bop-gss.html">
+<div class="view" id="view-bop-gss"><div id="bop-gss-ct"></div></div>
+</template>
+
+<template data-partial="views/view-pod.html">
+<div class="view" id="view-pod" style="position:relative;">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <!-- Logo top-right injected by rndrPod via _pageLogoTR() -->
+  <div class="ph">
+    <div class="pht" style="color:var(--pod);display:flex;align-items:center;gap:8px;">
+      📋 POD – Plan of Day &amp; Daily Entry
+    </div>
+    <div class="phs">POD = Planned work (no login) | Today's Progress = Actual work (login required from module pages)</div>
+  </div>
+  <div class="stabs">
+    <div class="stb on-s" id="ptb-s" onclick="podTab('s')">
+      <span id="ptb-sol-icon"></span> Solar
+    </div>
+    <div class="stb" id="ptb-w" onclick="podTab('w')">
+      <span id="ptb-wtg-icon"></span> WTG
+    </div>
+    <div class="stb" id="ptb-b" onclick="podTab('b')">
+      <span id="ptb-bop-icon"></span> BOP
+    </div>
+    <div class="stb" id="ptb-l" onclick="podTab('l')">🌍 Land</div>
+  </div>
+  <div id="pod-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-safety.html">
+<div class="view" id="view-safety"><div class="bk" onclick="nav('home')">← Dashboard</div><div id="safety-ct"></div></div>
+</template>
+
+<template data-partial="views/view-manpower.html">
+<div class="view" id="view-manpower"><div class="bk" onclick="nav('home')">← Dashboard</div><div id="mp-ct"></div></div>
+</template>
+
+<template data-partial="views/view-map.html">
+<div class="view" id="view-map">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph"><div class="pht">🗺️ Site Map – Kudligi, KA</div><div class="phs">WTG locations + Solar Block-2 (Jermali) + BOP lines | Click markers</div></div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:9px;align-items:center;">
+    <div style="display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:8px;padding:4px 8px;">
+      <span style="font-size:9px;color:var(--mu);font-weight:700;">FILTER:</span>
+      <button class="map-fbtn active" data-flt="all"   onclick="filterMap('all')">🌐 All</button>
+      <button class="map-fbtn"        data-flt="wtg"   onclick="filterMap('wtg')">🌬️ WTG</button>
+      <button class="map-fbtn"        data-flt="solar" onclick="filterMap('solar')">☀️ Solar</button>
+      <button class="map-fbtn"        data-flt="33kv"  onclick="filterMap('33kv')">🔋 33kV</button>
+      <button class="map-fbtn"        data-flt="66kv"  onclick="filterMap('66kv')">🔌 66kV</button>
+    </div>
+    <span class="chip cg">🟢 Ready</span><span class="chip cb">🔵 Cast</span><span class="chip cy">🟡 WIP</span><span class="chip cr">🔴 ROW/Issue</span>
+  </div>
+
+  <style>
+    .map-fbtn{background:transparent;border:1px solid var(--bd);color:var(--tx);font-size:9px;font-weight:700;padding:4px 9px;border-radius:6px;cursor:pointer;transition:.15s;}
+    .map-fbtn:hover{background:rgba(255,255,255,.06);border-color:var(--ac);}
+    .map-fbtn.active{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 0 6px rgba(0,200,255,.4);}
+  </style>
+
+  <div id="sitemap"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-procurement.html">
+<div class="view" id="view-procurement">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--ac);display:flex;align-items:center;gap:8px;">🛒 Procurement — Purchase Orders</div>
+    <div class="phs">PO workflow: draft → approved → delivered → closed. Approval requires Site Manager; other steps need Procurement credentials.</div>
+  </div>
+  <div class="stabs">
+    <div class="stb on-s" id="prtb-po"  onclick="procTab('po')">📄 Purchase Orders</div>
+    <div class="stb"      id="prtb-new" onclick="procTab('new')">➕ New PO</div>
+  </div>
+  <div id="proc-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-vendors.html">
+<div class="view" id="view-vendors">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--ac3);display:flex;align-items:center;gap:8px;">🏢 Vendor Directory</div>
+    <div class="phs">Searchable vendor master with categories, ratings and linked PO history. Filtering happens client-side (RTDB has no joins — see docs).</div>
+  </div>
+  <div id="vendors-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-inventory.html">
+<div class="view" id="view-inventory">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--kv6);display:flex;align-items:center;gap:8px;">📦 Inventory / Store</div>
+    <div class="phs">Append-only stock ledger (date-keyed, like POD). Current stock = Σ(ledger) computed client-side; nothing ever mutates a running total.</div>
+  </div>
+  <div class="stabs">
+    <div class="stb on-s" id="invtb-stock"  onclick="invTab('stock')">📊 Current Stock</div>
+    <div class="stb"      id="invtb-ledger" onclick="invTab('ledger')">📒 Ledger</div>
+    <div class="stb"      id="invtb-move"   onclick="invTab('move')">➕ Movement / Transfer</div>
+  </div>
+  <div id="inv-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-planning.html">
+<div class="view" id="view-planning">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--wtg);display:flex;align-items:center;gap:8px;">🗓️ Planning — Schedule &amp; Critical Path</div>
+    <div class="phs">Gantt with dependencies. Critical path is computed client-side from predecessor links (longest path through the task DAG). Baseline vs actual variance shown per task.</div>
+  </div>
+  <div id="plan-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-documents.html">
+<div class="view" id="view-documents">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--pss);display:flex;align-items:center;gap:8px;">🗂️ Document Management</div>
+    <div class="phs">Files live in Supabase Storage; Postgres holds metadata + version history only. Never base64 in the database.</div>
+  </div>
+  <div id="docs-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-reports.html">
+<div class="view" id="view-reports">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--ok);display:flex;align-items:center;gap:8px;">📈 Reports &amp; Analytics</div>
+    <div class="phs">Cross-module rollups assembled client-side (RTDB has no aggregation engine — at higher data volumes these would move to a Cloud Function; see docs/SCALABILITY.md).</div>
+  </div>
+  <div id="reports-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/view-audit.html">
+<div class="view" id="view-audit">
+  <div class="bk" onclick="nav('home')">← Dashboard</div>
+  <div class="ph">
+    <div class="pht" style="color:var(--er);display:flex;align-items:center;gap:8px;">🧾 Audit Log</div>
+    <div class="phs">Every mutation in data-api.js writes one immutable entry to /audit. Under the Phase-6 rules this node is readable by Site Manager (admin) only.</div>
+  </div>
+  <div id="audit-ct"></div>
+</div>
+
+</template>
+
+<template data-partial="views/footer.html">
+<div id="ft">
+  <div>Continuum Green Energy | SWPPL 140MW Hybrid EPC | Kudligi, Karnataka</div>
+  <div>
+    <span class="ldot"></span>Live |
+    <span id="ft-date">—</span> |
+    <span id="ft-fb-info" data-tt="Verifies both devices are reading from the same Supabase project">DB: <code style="font-size:9px;background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px;">—</code></span> |
+    v9.1-demo
+  </div>
+</div>
+
+</template>
+
+<!-- ───────────────────────────────────────────────────────────────
+     supabase-js v2 (UMD) — Postgres data + Auth + Realtime + Storage
+     in one client. Config lives in js/supabase-config.js; RLS
+     (sql/rls-policies.sql) is the server-side security boundary.
+     ─────────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- ───────────────────────────────────────────────────────────────
+     v9 core layer  (load order matters)
+     1. supabase-config/init.js → exposes window.sb (+ shape-map.js)
+     2. dom.js          → esc(), el(), safeHTML()
+     3. auth.js         → window.auth.signIn / requireRole
+     4. data-api.js     → window.dataApi.* (Supabase writes)
+     5. realtime.js     → window.realtime.* (Supabase postgres_changes)
+     6. storage.js      → window.storage.* (Supabase Storage uploads)
+     7. state.js        → window.appState + appStore (single source of truth)
+     8. data.js         → window.DB (legacy shape used by renderers)
+     9. state-bridge.js → wires realtime → appState → DB → re-render
+    10. renderers       → read DB, write via dataApi.*
+    11. loader.js       → boots the UI
+     ─────────────────────────────────────────────────────────────── -->
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-init.js"></script>
+<script src="js/shape-map.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data-api.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+
+<script src="js/data.js"></script>
+<script src="js/state-bridge.js"></script>
+
+<script src="js/calc.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/live-charts.js"></script>
+<script src="js/date-picker.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/render-home.js"></script>
+<script src="js/render-solar.js"></script>
+<script src="js/wtg-structure.js"></script>
+<script src="js/solar-structure.js"></script>
+<script src="js/solar-gis-data.js"></script>
+<script src="js/project-creator.js"></script>
+<script src="js/render-wtg.js"></script>
+<script src="js/render-land.js"></script>
+<script src="js/render-bop.js"></script>
+<script src="js/render-misc.js"></script>
+<script src="js/render-procurement.js"></script>
+<script src="js/render-inventory.js"></script>
+<script src="js/render-planning.js"></script>
+<script src="js/render-documents.js"></script>
+<script src="js/render-reports.js"></script>
+<script src="js/render-audit.js"></script>
+<script src="js/advanced.js"></script>
+<script src="js/user-panel.js"></script>
+<script src="js/notify.js"></script>
+<script src="js/ui-live.js"></script>
+<script src="js/loader.js"></script>
+
+<!--
+  Architecture: Firebase Realtime DB is the SINGLE source of truth.
+  • All writes go through dataApi.* (data-api.js) which writes to Firebase.
+  • All reads come from realtime.* (realtime.js) which feeds appStore (state.js).
+  • appStore mirrors into the legacy `window.DB` shape (state-bridge.js)
+    so existing renderers keep working without rewriting them.
+  • UI re-renders automatically whenever appState changes.
+  No legacy local-only saves. No no-op scheduleSave. No data overwrite bugs.
+-->
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "_comment": "Role seed for /users. HOW TO USE: (1) Firebase Console → Authentication → enable Email/Password → Add user for each email below and set a strong password; (2) copy each generated UID; (3) replace the REPLACE_WITH_UID_* keys below with the real UIDs; (4) Realtime Database → Data → /users → Import JSON (this file, without _comment). Users can never self-promote: /users/{uid}/role is writable only by admin per database.rules.json.",
+  "REPLACE_WITH_UID_ADMIN": { "role": "admin",       "name": "Site Manager",        "email": "admin@swppl.demo" },
+  "REPLACE_WITH_UID_SOLAR": { "role": "solar",       "name": "Solar Engineer",      "email": "solar@swppl.demo" },
+  "REPLACE_WITH_UID_WTG":   { "role": "wtg",         "name": "WTG Engineer",        "email": "wtg@swppl.demo" },
+  "REPLACE_WITH_UID_BOP":   { "role": "bop",         "name": "BOP Engineer",        "email": "bop@swppl.demo" },
+  "REPLACE_WITH_UID_LAND":  { "role": "land",        "name": "Land Coordinator",    "email": "land@swppl.demo" },
+  "REPLACE_WITH_UID_PROC":  { "role": "procurement", "name": "Procurement Officer", "email": "proc@swppl.demo" },
+  "REPLACE_WITH_UID_STORE": { "role": "store",       "name": "Store Keeper",        "email": "store@swppl.demo" },
+  "REPLACE_WITH_UID_PLAN":  { "role": "planner",     "name": "Planning Engineer",   "email": "plan@swppl.demo" },
+  "REPLACE_WITH_UID_VIEW":  { "role": "viewer",      "name": "Management Viewer",   "email": "view@swppl.demo" }
+}

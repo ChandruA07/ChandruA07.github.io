@@ -1,0 +1,247 @@
+/* ═══════════════════════════════════════════════════════════════
+   ui-polish.css — enterprise-grade visual refinement layer
+   Loaded LAST so it can refine the base theme without rewriting it:
+   typography rhythm, card depth, motion, consistent spacing, live
+   toast popups, and the interactive wind-farm visualisation.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Typography rhythm ─────────────────────────────────────────── */
+body{
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  letter-spacing:.1px;
+}
+.pt{letter-spacing:.3px;}
+.pht{letter-spacing:.4px;}
+.kl{letter-spacing:1.2px;font-weight:600;}
+.kv{font-variant-numeric:tabular-nums;}
+.fl{letter-spacing:.8px;}
+
+/* ── Card system: consistent radius, depth, hover lift ─────────── */
+.pnl{
+  border-radius:12px;
+  transition:box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.10);
+}
+.pnl:hover{
+  box-shadow:0 2px 4px rgba(0,0,0,.20), 0 10px 28px rgba(0,0,0,.16);
+  border-color:var(--b2);
+}
+.kpi{
+  border-radius:11px;
+  transition:transform .22s cubic-bezier(.22,.8,.36,1), box-shadow .22s ease;
+}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.22);}
+
+/* live value flash — ui-live.js adds .val-flash whenever a number changes */
+.val-flash{animation:valFlash 1s ease;}
+@keyframes valFlash{
+  0%{text-shadow:0 0 0 transparent;}
+  25%{text-shadow:0 0 14px var(--ac,#4fc3f7);transform:scale(1.06);}
+  100%{text-shadow:0 0 0 transparent;transform:scale(1);}
+}
+
+/* ── Buttons: smoother, consistent ─────────────────────────────── */
+.btn{
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+  border-radius:7px;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.22);}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn:focus-visible{outline:2px solid var(--ac,#4fc3f7);outline-offset:2px;}
+
+/* ── Tables: row hover, breathing room ─────────────────────────── */
+.tbl td,.tbl th{padding:7px 9px;}
+.tbl tbody tr{transition:background .15s ease;}
+.tbl tbody tr:hover{background:rgba(79,195,247,.05);}
+.work-tbl td{padding:11px 12px;}
+.work-tbl tbody tr{transition:background .15s ease;}
+
+/* ── Inputs ────────────────────────────────────────────────────── */
+.fi,.fs,.fta{
+  border-radius:7px;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.fi:focus,.fs:focus,.fta:focus{
+  border-color:var(--ac,#4fc3f7);
+  box-shadow:0 0 0 3px rgba(79,195,247,.14);
+  outline:none;
+}
+
+/* ── Scrollbars ────────────────────────────────────────────────── */
+*::-webkit-scrollbar{width:9px;height:9px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--b2,#24406a);border-radius:5px;border:2px solid transparent;background-clip:content-box;}
+*::-webkit-scrollbar-thumb:hover{background:var(--b3,#2e5085);background-clip:content-box;border:2px solid transparent;}
+
+/* ── View entrance ─────────────────────────────────────────────── */
+.view.on{animation:viewIn .3s cubic-bezier(.22,.8,.36,1);}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE TOAST POPUPS — sequential real-time notification bubbles
+   (history stays in the bell panel; these are the "as it happens"
+   WhatsApp-style popups, bottom-right, queued one after another)
+   ═══════════════════════════════════════════════════════════════ */
+/* energy-flow dash animation — used by the live site map polylines */
+@keyframes flowDash{to{stroke-dashoffset:-16;}}
+
+/* ── Leaflet site-map live effects ─────────────────────────────── */
+.leaflet-overlay-pane path.flow-line{
+  stroke-dasharray:8 8;
+  animation:flowDash 1.4s linear infinite;
+}
+.map-pulse{position:relative;}
+.map-pulse::after{
+  content:'';position:absolute;inset:-5px;border-radius:50%;
+  border:2px solid currentColor;opacity:.7;
+  animation:mapPulse 1.8s ease-out infinite;
+}
+@keyframes mapPulse{0%{transform:scale(.6);opacity:.8;}100%{transform:scale(1.5);opacity:0;}}
+
+/* light theme adjustments */
+[data-theme="light"] .pnl{box-shadow:0 1px 2px rgba(40,70,120,.08), 0 4px 14px rgba(40,70,120,.07);}
+
+/* live-viz empty-state overlays */
+.lv-empty{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  text-align:center;color:var(--t3,#4a6a8a);font-size:10px;line-height:1.6;padding:0 24px;
+}
+
+/* live-viz canvases must fill their fixed-height .ch containers so Chart.js
+   (maintainAspectRatio:false) has definite dimensions to draw into */
+.ch{position:relative;min-height:0;}
+.ch canvas{display:block;width:100%!important;height:100%!important;}
+.live-viz-grid .ch.h280{height:240px;}
+@media(max-width:1100px){.live-viz-grid .ch.h280{height:220px;}}
+
+/* ── Manpower & Machinery section cards ── */
+.mp-sec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:900px){.mp-sec-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.mp-sec-grid{grid-template-columns:1fr;}}
+.mp-sec-card{
+  background:var(--card2,#0e2038);border:1px solid var(--b1,#1a2e4a);border-radius:10px;
+  padding:11px 13px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.mp-sec-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.22);}
+.mp-sec-card.open{border-color:var(--ac,#4fc3f7);box-shadow:0 0 0 2px rgba(79,195,247,.18);}
+
+/* ── Manpower & Machinery — Power BI-style visual dashboard ── */
+.mp-viz-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:1000px){.mp-viz-grid{grid-template-columns:1fr;}}
+.mp-viz-card{position:relative;}
+.mp-share-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+@media(max-width:900px){.mp-share-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.mp-share-row{grid-template-columns:1fr;}}
+.mp-share-card{
+  background:var(--card2,#0e2038);border:1px solid var(--b1,#1a2e4a);border-radius:9px;
+  padding:9px 11px;transition:transform .15s ease, box-shadow .15s ease;
+}
+.mp-share-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.2);}
+
+/* ── Manpower hero KPI cards (Power BI-style) ── */
+.mp-hero-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+@media(max-width:900px){.mp-hero-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.mp-hero-row{grid-template-columns:1fr;}}
+.mp-hero{
+  position:relative;border-radius:13px;padding:15px 16px 13px;overflow:hidden;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  box-shadow:0 6px 18px rgba(0,0,0,.28);color:#fff;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.mp-hero:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.36);}
+.mp-hero::after{content:'';position:absolute;right:-20px;top:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12);}
+.mp-hero-ic{font-size:20px;margin-bottom:6px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));}
+.mp-hero-v{font-family:var(--f2,inherit);font-size:30px;font-weight:800;line-height:1;letter-spacing:-1px;text-shadow:0 2px 6px rgba(0,0,0,.25);}
+.mp-hero-l{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-top:5px;opacity:.95;}
+.mp-hero-s{font-size:8.5px;opacity:.8;margin-top:2px;}
+[data-theme="light"] .mp-hero{color:#fff;}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER NOTIFICATION MARQUEE — redesigned (v10.14)
+   Attractive glassy slider in the header space, animated accent
+   border, per-module icon chips, smooth seamless scrolling.
+   ═══════════════════════════════════════════════════════════════ */
+.hero-marquee{
+  flex:1 1 auto;min-width:0;max-width:920px;margin:0 22px;height:52px;
+  display:flex;align-items:stretch;overflow:hidden;border-radius:14px;
+  background:linear-gradient(105deg,#0b1c33 0%,#0f2a4d 40%,#132f56 60%,#0b1c33 100%);
+  position:relative;box-shadow:0 6px 22px rgba(0,0,0,.35);
+}
+/* animated gradient border ring */
+.hero-marquee::before{
+  content:'';position:absolute;inset:0;border-radius:14px;padding:1.5px;
+  background:linear-gradient(120deg,#4fc3f7,#7c4dff 30%,#00e5ff 55%,#1565c0 80%,#4fc3f7);
+  background-size:300% 300%;animation:hmqBorder 7s linear infinite;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+@keyframes hmqBorder{0%{background-position:0% 50%;}100%{background-position:300% 50%;}}
+.hero-marquee::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:70px;pointer-events:none;z-index:1;
+  background:linear-gradient(90deg,rgba(11,28,51,0),#0b1c33 85%);
+}
+.hero-marquee-badge{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:0 15px;z-index:2;position:relative;
+  font-size:9px;font-weight:900;letter-spacing:1.6px;color:#fff;
+  background:linear-gradient(160deg,#1e88e5,#0d47a1);
+  clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);
+  box-shadow:4px 0 16px rgba(13,71,161,.5);
+}
+.hmq-dot{width:9px;height:9px;border-radius:50%;background:#69f0ae;
+  animation:hmqPulse 1.4s ease-in-out infinite;box-shadow:0 0 10px #69f0ae;}
+@keyframes hmqPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(1.35);}}
+.hero-marquee-viewport{flex:1;min-width:0;overflow:hidden;position:relative;display:flex;align-items:center;}
+.hero-marquee-track{
+  display:inline-flex;align-items:center;white-space:nowrap;
+  will-change:transform;animation:hmqScroll 40s linear infinite;
+}
+.hero-marquee:hover .hero-marquee-track{animation-play-state:paused;}
+@keyframes hmqScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.hmq-item{display:inline-flex;align-items:center;gap:10px;margin:0 8px;padding:7px 15px;
+  background:rgba(255,255,255,.055);border:1px solid rgba(79,195,247,.22);border-radius:24px;
+  backdrop-filter:blur(2px);transition:background .2s;}
+.hmq-item:hover{background:rgba(79,195,247,.12);}
+.hmq-ic{font-size:15px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));}
+.hmq-tag{
+  flex-shrink:0;font-size:8.5px;font-weight:900;letter-spacing:.7px;
+  border:1px solid currentColor;border-radius:9px;padding:2px 9px;line-height:1.2;
+}
+.hmq-text{font-size:13.5px;font-weight:650;color:#eef6ff;letter-spacing:.15px;}
+.hmq-by{font-size:10.5px;color:#8fb6dd;font-style:italic;}
+.hmq-sep{display:none;}
+@media(max-width:1150px){.hero-marquee{max-width:470px;margin:0 12px;height:46px;}.hmq-text{font-size:12px;}.hmq-ic{font-size:13px;}}
+@media(max-width:900px){.hero-marquee{display:none;}}
+[data-theme="light"] .hero-marquee{
+  background:linear-gradient(105deg,#eaf3fd 0%,#dbeafc 40%,#d3e6fb 60%,#eaf3fd 100%);
+  box-shadow:0 6px 18px rgba(30,70,130,.18);
+}
+[data-theme="light"] .hero-marquee::after{background:linear-gradient(90deg,rgba(234,243,253,0),#eaf3fd 85%);}
+[data-theme="light"] .hmq-item{background:rgba(21,101,192,.06);border-color:rgba(21,101,192,.22);}
+[data-theme="light"] .hmq-text{color:#123253;}
+[data-theme="light"] .hmq-by{color:#5a7a9a;}
+
+/* ── Site-map Google Earth-style flight caption ── */
+.map-fly-caption{
+  position:absolute;left:50%;top:18px;transform:translateX(-50%);z-index:800;
+  background:rgba(7,16,31,.88);border:1px solid rgba(79,195,247,.45);border-radius:22px;
+  color:#e8f2ff;font-size:12.5px;font-weight:700;letter-spacing:.3px;
+  padding:9px 20px;box-shadow:0 6px 22px rgba(0,0,0,.45);backdrop-filter:blur(4px);
+  transition:opacity .8s ease, transform .8s ease;white-space:nowrap;pointer-events:none;
+}
+.map-fly-caption.done{opacity:0;transform:translateX(-50%) translateY(-12px);}
+[data-theme="light"] .map-fly-caption{background:rgba(255,255,255,.92);color:#123253;border-color:rgba(21,101,192,.4);}
+
+/* ── Manpower viz cards — Power BI polish (v10.14) ── */
+.mp-viz-card{
+  border-top:none!important;position:relative;overflow:hidden;
+}
+.mp-viz-card::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#1e88e5,#00e5ff 45%,#7c4dff);
+  border-radius:3px 3px 0 0;
+}
+.mp-viz-card .ph2 .pt{font-weight:800;}
+.mp-viz-card:hover{box-shadow:0 8px 22px rgba(0,0,0,.25);}

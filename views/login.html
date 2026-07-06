@@ -1,0 +1,39 @@
+<div id="lw" class="lw" style="display:none;">
+  <div class="lb">
+    <div class="li" id="l-i">🔐</div>
+    <div class="lt" id="l-t">Sign in</div>
+    <div class="ls" id="l-s">
+      Sign in to enable edits. Access control is enforced server-side by
+      Realtime Database rules — this dialog is the front door, not the lock.
+    </div>
+
+    <div class="fg" style="text-align:left;margin-top:4px;">
+      <label class="fl">Email</label>
+      <input class="fi" id="l-u" type="text" autocomplete="username" placeholder="you@company.com">
+    </div>
+    <div class="fg" style="text-align:left;">
+      <label class="fl">Password</label>
+      <input class="fi" id="l-p" type="password" autocomplete="current-password"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')auth.doLoginForm()">
+    </div>
+
+    <div class="le" id="l-e"></div>
+
+    <div style="display:flex;gap:7px;margin-top:7px;">
+      <button class="btn"     style="flex:1;" onclick="auth.closeLogin()">Cancel</button>
+      <button class="btn bta" style="flex:1;" data-role="submit" onclick="auth.doLoginForm()">Sign in</button>
+    </div>
+
+    <div style="margin-top:9px;padding:8px 10px;background:var(--card3);border-radius:6px;
+                font-size:9px;color:var(--t3);text-align:left;line-height:1.6;">
+      <b style="color:var(--t2);">Seeded accounts</b> (provisioned per docs/DEPLOYMENT.md; passwords are set in the Firebase Console)<br>
+      • Solar <code>solar@swppl.demo</code> · WTG <code>wtg@swppl.demo</code> · BOP <code>bop@swppl.demo</code><br>
+      • Land <code>land@swppl.demo</code> · Procurement <code>proc@swppl.demo</code> · Store <code>store@swppl.demo</code><br>
+      • Planning <code>plan@swppl.demo</code> · Site Manager <code>admin@swppl.demo</code> (full access)
+      <br><br>
+      Each role can edit only its own module; Site Manager can edit everything.
+      Writes outside your role are rejected by the database itself, even from DevTools.
+    </div>
+  </div>
+</div>

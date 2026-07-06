@@ -1,0 +1,169 @@
+{
+  "_comment": "PRODUCTION RULES (Phase 6, v11). These are the actual security boundary \u2014 the browser-side auth.js is UX only. Every write is checked on Google's servers against the caller's Firebase Auth uid and the role stored at /users/{uid}/role. Roles: admin | solar | wtg | bop | land | procurement | store | planner | viewer. Deploy with: firebase deploy --only database. BREAKING vs v10: anonymous read/write is gone \u2014 every read requires sign-in, and POD entry now requires a signed-in non-viewer account (documented in docs/SECURITY.md).",
+  "rules": {
+    ".read": "auth != null",
+    ".write": false,
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+        "name": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+        },
+        "role": {
+          ".validate": "newData.isString() && newData.val().matches(/^(admin|solar|wtg|bop|land|procurement|store|planner|viewer)$/)"
+        }
+      }
+    },
+    "solar": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'solar')"
+    },
+    "wtg": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'wtg')"
+    },
+    "bop": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'bop')"
+    },
+    "land": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'land')"
+    },
+    "hse": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'",
+      "observations": {
+        ".indexOn": [
+          "ts"
+        ]
+      }
+    },
+    "pod": {
+      "$date": {
+        ".indexOn": [
+          "ts"
+        ],
+        ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        "$pushId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'",
+          ".validate": "newData.hasChildren(['module','activity','ts'])",
+          "module": {
+            ".validate": "newData.isString() && newData.val().matches(/^(s|w|l|b)$/)"
+          },
+          "by": {
+            ".validate": "newData.val() === auth.uid"
+          }
+        }
+      }
+    },
+    "dailyProgress": {
+      ".indexOn": [
+        "ts"
+      ],
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+    "snapshots": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+    "notifications": {
+      ".indexOn": [
+        "ts"
+      ],
+      ".write": "auth != null"
+    },
+    "milestones": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "blockers": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+    "schedule": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "vendors": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'procurement')",
+      "$vendorId": {
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "email": {
+          ".validate": "!newData.exists() || newData.val() === '' || newData.val().matches(/^[^@\\s]+@[^@\\s]+$/)"
+        }
+      }
+    },
+    "purchaseOrders": {
+      ".indexOn": [
+        "status",
+        "vendorId",
+        "ts"
+      ],
+      "$poId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'procurement')",
+        "status": {
+          ".validate": "newData.isString() && newData.val().matches(/^(draft|approved|delivered|closed|cancelled)$/) && (newData.val() !== 'approved' || root.child('users').child(auth.uid).child('role').val() === 'admin' || (data.exists() && data.val() === 'approved'))"
+        }
+      }
+    },
+    "inventory": {
+      "items": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'store')"
+      },
+      "movements": {
+        "$date": {
+          ".indexOn": [
+            "itemId",
+            "ts"
+          ],
+          ".validate": "$date.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+          "$pushId": {
+            ".write": "auth != null && !data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'store')",
+            ".validate": "newData.hasChildren(['itemId','type','qty','ts'])",
+            "type": {
+              ".validate": "newData.isString() && newData.val().matches(/^(in|out|adjust)$/)"
+            },
+            "qty": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
+      }
+    },
+    "planning": {
+      "tasks": {
+        ".indexOn": [
+          "start",
+          "module"
+        ],
+        "$taskId": {
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+          },
+          "start": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+          },
+          "end": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+          }
+        },
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'planner')"
+      },
+      "baselines": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      },
+      "dependents": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'planner')"
+      }
+    },
+    "documents": {
+      ".indexOn": [
+        "module",
+        "category"
+      ],
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() !== 'viewer'"
+    },
+    "audit": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$entry": {
+        ".write": "auth != null && !data.exists()"
+      }
+    }
+  }
+}

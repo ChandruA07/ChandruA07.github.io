@@ -1,0 +1,15 @@
+{
+  "name": "SWPPL 140MW Hybrid Dashboard — Continuum Green Energy",
+  "short_name": "SWPPL",
+  "description": "Renewable Energy EPC site-management dashboard (Solar + Wind, 140MW hybrid).",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07101f",
+  "theme_color": "#07101f",
+  "icons": [
+    { "src": "continuumlogo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "continuumlogo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

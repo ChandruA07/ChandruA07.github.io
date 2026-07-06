@@ -1,0 +1,31 @@
+{
+  "_comment": "FIX 7 \u2014 public read/write because there is NO Firebase Auth in this project. The 'login' is a hardcoded password in JS only (auth.js). FIX 2 \u2014 .indexOn entries are required so the orderByChild('ts') queries in realtime.listenDailyProgress / listenHse don't print runtime warnings and stay performant on the free tier. Deploy with: firebase deploy --only database \u2014 notifications/.indexOn added for the live bell's orderByChild('ts') query; pod/$date/.indexOn for the live POD feed.",
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "dailyProgress": {
+      ".indexOn": [
+        "ts"
+      ]
+    },
+    "hse": {
+      "observations": {
+        ".indexOn": [
+          "ts"
+        ]
+      }
+    },
+    "notifications": {
+      ".indexOn": [
+        "ts"
+      ]
+    },
+    "pod": {
+      "$date": {
+        ".indexOn": [
+          "ts"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,1668 @@
+'use strict';
+// =============================================================
+//  data-api.js  —  ALL writes funnel through this module.
+//
+//  Why: v8 wrote with `firebaseDB.ref('dashboard').set(blob)`,
+//  which overwrote the entire database on every save. This file
+//  replaces every such site with leaf-level partial updates,
+//  push() for new list items, and transaction() for counters.
+//
+//  Public surface (window.dataApi):
+//    addPod(entry)
+//    updateSolarAct(itcId, idx, patch)
+//    updateTurbine(turbId, patch)
+//    updateBopAct(actName, patch)
+//    addHseObservation(obs)
+//    updateHseObservation(id, patch)
+//    addBlocker(b) / addMilestone(m)
+//    setUserProfile(patch)        (limited to name; never role)
+//
+//  Every write:
+//    1. Aborts if not signed in.
+//    2. Stamps lastBy = uid, lastAt = serverTime.
+//    3. Goes through audit() so admin can see who did what.
+// =============================================================
+
+(function (global) {
+
+  // -----------------------------------------------------------
+  // DEMO BUILD: _u() never throws — writes always succeed because
+  // security/rules.json is configured for public R/W. We just
+  // return whatever auth.current() gives us, falling back to an
+  // 'Anonymous' viewer-shaped object so byName fields are populated.
+  //
+  // Role checks ('admin' / 'solar' / 'wtg' / 'bop') still happen
+  // inside individual writers, but they all rely on auth.canEdit()
+  // which is true once the demo password is entered.
+  // -----------------------------------------------------------
+  function _u() {
+    const p = auth.current();
+    if (p) return p;
+    return { uid: 'anon', name: 'Anonymous', role: 'viewer' };
+  }
+
+  // -----------------------------------------------------------
+  // Internal: write an audit entry. Best-effort; never throws.
+  // -----------------------------------------------------------
+  function _audit(action, path, before, after) {
+    try {
+      const uid = (auth.current() || {}).uid;
+      if (!uid) return;
+      const ts = Date.now();
+      fbDB.ref('audit/' + ts + '_' + Math.random().toString(36).slice(2,7)).set({
+        uid, role: (auth.current()||{}).role || '?',
+        action, path, before: before === undefined ? null : before,
+        after:  after  === undefined ? null : after,
+        ts: fbServerTs
+      }).catch(() => { /* audit is best-effort */ });
+    } catch (e) {}
+  }
+
+  // -----------------------------------------------------------
+  // Internal: write a notification record. Best-effort; never
+  // throws and never blocks the main write. Every notification:
+  //   { module, action, desc, byName, ts, readBy:{} }
+  // module ∈ 'solar'|'wtg'|'bop'|'land'|'hse'|'general'
+  // The bell UI (js/notify.js) listens on /notifications with
+  // child_added and shows them WhatsApp-style in the topbar.
+  // -----------------------------------------------------------
+  function _notify(module, action, desc) {
+    try {
+      const me = _u();
+      fbDB.ref('notifications').push({
+        module: String(module || 'general').slice(0, 20),
+        action: String(action || '').slice(0, 60),
+        desc:   String(desc   || '').slice(0, 300),
+        byName: String(me.name || 'Anonymous').slice(0, 80),
+        ts:     fbServerTs
+      }).catch(() => {});
+    } catch (e) { /* notifications are best-effort */ }
+  }
+
+  // -----------------------------------------------------------
+  // Date helper. POD entries are keyed by ISO date.
+  // -----------------------------------------------------------
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           String(d.getDate()).padStart(2,'0');
+  }
+
+  // ===========================================================
+  //  POD — Plan of Day
+  // ===========================================================
+
+  /**
+   * Add a POD entry.
+   * @param {object} entry  must contain: module ('s'|'w'|'l'|'b'),
+   *                                       activity, qty, mp, contractor, notes
+   *                        may contain:  date (defaults to today), photoURL
+   */
+  /**
+   * Add a Plan-of-Day entry. Public — works without login.
+   * Anonymous submissions are tagged byName: 'Anonymous'.
+   * @param {object} entry  { module, activity, qty, mp, contractor, notes, photoURL, date? }
+   */
+  async function addPod(entry) {
+    const me = auth.current();   // may be null — that's fine
+    const date = (entry.date && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)) ? entry.date : todayISO();
+    const ref = fbDB.ref('pod/' + date).push();
+    const payload = {
+      module:     String(entry.module || ''),
+      activity:   String(entry.activity || '').slice(0, 200),
+      qty:        Number(entry.qty)  || 0,
+      mp:         Number(entry.mp)   || 0,
+      resources:  Array.isArray(entry.resources)
+                    ? entry.resources.slice(0,30).map(r => ({
+                        type: String(r.type||'').slice(0,60),
+                        qty:  Number(r.qty) || 0
+                      }))
+                    : [],
+      contractor: String(entry.contractor || '').slice(0, 120),
+      notes:      String(entry.notes      || '').slice(0, 500),
+      photoURL:   entry.photoURL ? String(entry.photoURL) : null,
+      // Submitter name: if the form provides one (typed by an anonymous user),
+      // use that; otherwise fall back to the logged-in user's display name,
+      // and finally to "Anonymous".
+      byName:     String(entry.byName || (me ? me.name : '') || 'Anonymous').slice(0, 80),
+      date:       date,
+      status:     'nys',  // Default: Not Yet Started — authorized person flips this later
+      progress:   0,
+      remark:     '',
+      ts:         fbServerTs
+    };
+    if (me) payload.by = me.uid;     // attach UID only when logged in (rules tolerate either)
+    console.log('[data] write pod:', date, payload.activity, payload.byName);
+    await ref.set(payload);
+    if (me) _audit('pod.add', ref.toString(), null, { date, ...payload });
+    _notify({s:'solar',w:'wtg',b:'bop',l:'land'}[payload.module] || 'general',
+            'POD submitted',
+            payload.activity + (payload.qty ? (' · qty ' + payload.qty) : '') + ' — by ' + payload.byName);
+    return { id: ref.key, date };
+  }
+
+  /**
+   * Add a Daily Progress entry. Public — works without login.
+   * Anonymous submissions are tagged byName: 'Anonymous'.
+   * @param {object} entry  { module, activity, qty, unit, remarks }
+   */
+  async function addDailyProgress(entry) {
+    const me  = auth.current();
+    const ref = fbDB.ref('dailyProgress').push();
+    const payload = {
+      module:   String(entry.module   || '').slice(0, 30),
+      activity: String(entry.activity || '').slice(0, 200),
+      qty:      Number(entry.qty)     || 0,
+      unit:     String(entry.unit     || '').slice(0, 20),
+      remarks:  String(entry.remarks  || '').slice(0, 500),
+      byName:   me ? me.name : 'Anonymous',
+      ts:       fbServerTs
+    };
+    if (me) payload.by = me.uid;
+    console.log('[data] write dailyProgress:', payload.module, payload.activity, payload.byName);
+    await ref.set(payload);
+    if (me) _audit('dailyProgress.add', ref.toString(), null, payload);
+    _notify((payload.module || 'general').toLowerCase(), 'Progress update',
+            payload.activity + (payload.qty ? (' · ' + payload.qty + ' ' + (payload.unit||'')) : ''));
+    return { id: ref.key };
+  }
+
+  // ===========================================================
+  //  POD STATUS / REMARKS / ITC NO-WORK REASON / NEXT-DAY PLAN
+  //  All edits require login (authorized person only).
+  //  Reads stay public via realtime listeners.
+  // ===========================================================
+
+  /**
+   * Update the work status on a POD entry.
+   * status ∈ { 'nys', 'wip', 'done' }
+   * progress: optional number (units completed, used when status='wip' or 'done')
+   * @param {string} date  YYYY-MM-DD
+   * @param {string} id    POD entry push id
+   * @param {object} patch { status, progress, remark }
+   */
+  async function updatePodStatus(date, id, patch) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to update work status.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Bad date');
+    if (!id) throw new Error('Bad id');
+    const me = _u();
+    const base = 'pod/' + date + '/' + id + '/';
+    const updates = {};
+    if (patch.status !== undefined) {
+      const s = String(patch.status);
+      if (!['nys','wip','done'].includes(s)) throw new Error('Bad status');
+      updates[base + 'status'] = s;
+    }
+    if (patch.progress !== undefined) {
+      updates[base + 'progress'] = Math.max(0, Number(patch.progress) || 0);
+    }
+    if (patch.remark !== undefined) {
+      updates[base + 'remark'] = String(patch.remark || '').slice(0, 500);
+    }
+    updates[base + 'statusBy']  = me.uid;
+    updates[base + 'statusByName'] = me.name;
+    updates[base + 'statusAt']  = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit('pod.status', base, null, patch);
+    if (patch.status) {
+      const lbl = patch.status === 'done' ? 'Completed' : patch.status === 'wip' ? 'WIP' : 'Not started';
+      _notify('general', 'POD status → ' + lbl,
+              (patch.progress != null ? ('progress ' + patch.progress + ' · ') : '') + (patch.remark || '') + ' — by ' + me.name);
+    }
+
+    // Mirror to /dailyProgress so the Daily Progress feed picks it up.
+    // Only when WIP or Done — Not-Yet-Started doesn't deserve a feed entry.
+    if (patch.status && patch.status !== 'nys') {
+      try {
+        const snap = await fbDB.ref('pod/' + date + '/' + id).get();
+        if (snap.exists()) {
+          const e = snap.val();
+          const modMap = {s:'Solar',w:'WTG',l:'Land',b:'BOP'};
+          const stateLabel = patch.status === 'done' ? 'COMPLETED' : 'WIP';
+          await addDailyProgress({
+            module:   modMap[e.module] || e.module || '',
+            activity: '[' + stateLabel + '] ' + (e.activity || ''),
+            qty:      Number(patch.progress != null ? patch.progress : (patch.status === 'done' ? e.qty : 0)) || 0,
+            unit:     '',
+            remarks:  patch.remark || ('by ' + me.name)
+          });
+        }
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  /**
+   * Add a "next day plan" entry. Same shape as POD but stored under
+   * /nextDayPlan/{forDate}/{pushId}. forDate = tomorrow (default).
+   * Authorized person only.
+   * @param {object} entry { module, activity, qty, mp, contractor, notes, forDate? }
+   */
+  async function addNextDayPlan(entry) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to set Next Day Plan.');
+    const me = _u();
+    let forDate = entry.forDate;
+    if (!forDate || !/^\d{4}-\d{2}-\d{2}$/.test(forDate)) {
+      const d = new Date(); d.setDate(d.getDate() + 1);
+      forDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    const ref = fbDB.ref('nextDayPlan/' + forDate).push();
+    const payload = {
+      module:     String(entry.module || ''),
+      activity:   String(entry.activity || '').slice(0, 200),
+      qty:        Number(entry.qty) || 0,
+      mp:         Number(entry.mp)  || 0,
+      contractor: String(entry.contractor || '').slice(0, 120),
+      notes:      String(entry.notes || '').slice(0, 500),
+      forDate:    forDate,
+      by:         me.uid,
+      byName:     me.name,
+      ts:         fbServerTs
+    };
+    await ref.set(payload);
+    _audit('nextDayPlan.add', ref.toString(), null, payload);
+    return { id: ref.key, forDate };
+  }
+
+  async function deleteNextDayPlan(forDate, id) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(forDate)) throw new Error('Bad date');
+    if (!id) throw new Error('Bad id');
+    await fbDB.ref('nextDayPlan/' + forDate + '/' + id).remove();
+    _audit('nextDayPlan.del', 'nextDayPlan/' + forDate + '/' + id, null, null);
+    return true;
+  }
+
+  /**
+   * Update an ITC's "live activities" payload — bullet points shown on the
+   * Solar subpage in place of the old bar chart. If no work is happening,
+   * set noWorkReason instead of activities.
+   * @param {string} itcId
+   * @param {object} patch { activities: string[], noWorkReason: string }
+   */
+  async function updateItcLiveActivities(itcId, patch) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required.');
+    if (!/^ITC-\d+$/.test(itcId)) throw new Error('Bad ITC id');
+    const me = _u();
+    const base = 'solar/itcs/' + itcId + '/live/';
+    const updates = {};
+    if (patch.activities !== undefined) {
+      const arr = Array.isArray(patch.activities) ? patch.activities : [];
+      updates[base + 'activities'] = arr.map(s => String(s || '').slice(0, 200)).filter(Boolean);
+    }
+    if (patch.noWorkReason !== undefined) {
+      updates[base + 'noWorkReason'] = String(patch.noWorkReason || '').slice(0, 300);
+    }
+    updates[base + 'lastBy']     = me.uid;
+    updates[base + 'lastByName'] = me.name;
+    updates[base + 'lastAt']     = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit('itc.live.update', base, null, patch);
+    return true;
+  }
+
+  // ===========================================================
+  //  Solar
+  // ===========================================================
+
+  /**
+   * Update solar activity progress at the leaf level.
+   * Only the fields you pass are written; everything else
+   * on the same activity is untouched.
+   *
+   * @param {string} itcId  e.g. 'ITC-1'
+   * @param {number} idx    0..15 matching SOL_ACT_DEFS
+   * @param {object} patch  any of: done, today, subDone (array)
+   */
+  async function updateSolarAct(itcId, idx, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!/^ITC-\d+$/.test(itcId)) throw new Error('Bad ITC id');
+    if (!Number.isInteger(idx) || idx < 0 || idx > 50) throw new Error('Bad idx');
+    const base = 'solar/itcs/' + itcId + '/acts/' + idx + '/';
+    const updates = {};
+    if (patch.done    !== undefined) updates[base + 'done']    = Number(patch.done) || 0;
+    if (patch.today   !== undefined) updates[base + 'today']   = Number(patch.today) || 0;
+    if (patch.subDone !== undefined) updates[base + 'subDone'] = patch.subDone.map(n => Number(n)||0);
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit('solar.act.update', base, null, patch);
+    _notify('solar', 'Progress update', itcId + ' · activity #' + (idx+1) +
+            (patch.done !== undefined ? (' → ' + patch.done + '%') : ''));
+  }
+
+  /**
+   * Solar metadata (totalMW, per-ITC MW). Admin-only on the rules.
+   */
+  async function updateSolarMeta(patch) {
+    _u();
+    const updates = {};
+    if (patch.totalMW !== undefined) updates['solar/meta/totalMW'] = Number(patch.totalMW);
+    if (patch.itcMW)
+      Object.entries(patch.itcMW).forEach(([k, v]) => {
+        updates['solar/meta/itcMW/' + k] = Number(v);
+      });
+    await fbDB.ref().update(updates);
+    _audit('solar.meta.update', 'solar/meta', null, patch);
+  }
+
+  // ===========================================================
+  //  WTG
+  // ===========================================================
+
+  async function updateTurbine(turbId, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (typeof turbId !== 'string' || turbId.length > 30) throw new Error('Bad turbine id');
+    const base = 'wtg/turbines/' + turbId + '/';
+    const allowed = ['status','lp','pp','civil','mech','uss','sup','notes','mechDates','acts','siteIssues','pathways','vendor','mw','localActs','localExtraSubs','iconColor'];
+    const updates = {};
+    for (const k of allowed) if (patch[k] !== undefined) updates[base + k] = patch[k];
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    console.log('[data] write wtg:', turbId, patch);
+    await fbDB.ref().update(updates);
+    _audit('wtg.turbine.update', base, null, patch);
+    _notify('wtg', 'Progress update', turbId + ' updated' +
+            (patch.civil !== undefined ? ' · civil ' + patch.civil + '%' : '') +
+            (patch.mech  !== undefined ? ' · mech '  + patch.mech  + '%' : ''));
+  }
+
+  // ===========================================================
+  //  BOP
+  // ===========================================================
+
+  async function updateBopAct(actName, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!actName) throw new Error('Bad activity');
+
+    // New format: actName = 'FeederKey|actIdx' with patch.arr = full feeder array.
+    // Stored under /bop/acts/{feederKey} as an 8-element array — this is what
+    // state-bridge mirrors into DB.bopActs['33kv'].
+    if (patch && patch.feeder !== undefined && Array.isArray(patch.arr)) {
+      const safeFeeder = String(patch.feeder).replace(/[.#$\[\]/]/g, '_');
+      const base = 'bop/acts/' + safeFeeder + '/';
+      const updates = {};
+      patch.arr.forEach((v, i) => { updates[base + i] = Number(v) || 0; });
+      updates[base + 'lastBy'] = me.uid;
+      updates[base + 'lastAt'] = fbServerTs;
+      console.log('[data] write bop 33kV feeder:', patch.feeder, patch.arr);
+      await fbDB.ref().update(updates);
+      _notify('bop', 'Progress update', actName + ' updated');
+    _audit('bop.act.update', base, null, patch);
+      pushDailyProgress({ module:'BOP', act:'33kV · ' + patch.feeder,
+                          pct: Number(patch.done) || 0 }).catch(()=>{});
+      return;
+    }
+
+    // Legacy single-activity format
+    const base = 'bop/acts/' + actName.replace(/[.#$\[\]/]/g,'_') + '/';
+    const updates = {};
+    if (patch.done !== undefined) updates[base + 'done'] = Number(patch.done) || 0;
+    if (patch.wip  !== undefined) updates[base + 'wip']  = Number(patch.wip)  || 0;
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    console.log('[data] write bop act:', actName, patch);
+    await fbDB.ref().update(updates);
+    _notify('bop', 'Progress update', actName + ' updated');
+    _audit('bop.act.update', base, null, patch);
+    pushDailyProgress({ module:'BOP', act:'33kV · ' + actName, pct: Number(patch.done) || 0 }).catch(()=>{});
+  }
+
+  // Update the pole count {total, done} for one 33kV feeder.
+  // Stored at /bop/poles33/{safeFeeder}.
+  async function updateBop33Line(feederId, line) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!feederId) throw new Error('Bad feederId');
+    const safeFeeder = String(feederId).replace(/[.#$\[\]/]/g, '_');
+    const base = 'bop/lines33/' + safeFeeder + '/';
+    const poleTotal = Math.max(0, Number(line && line.poleTotal) || 0);
+    const poleDone  = Math.max(0, Number(line && line.poleDone)  || 0);
+    const spanTotal = Math.max(0, Number(line && line.spanTotal) || 0);
+    const spanDone  = Math.max(0, Number(line && line.spanDone)  || 0);
+    await fbDB.ref().update({
+      [base + 'line']:      String((line && line.line) || 'SPSC'),
+      [base + 'poleTotal']: poleTotal,
+      [base + 'poleDone']:  poleDone,
+      [base + 'spanTotal']: spanTotal,
+      [base + 'spanDone']:  spanDone,
+      [base + 'lastBy']:    me.uid,
+      [base + 'lastAt']:    fbServerTs
+    });
+    // keep legacy pole-only path in sync
+    await fbDB.ref().update({
+      ['bop/poles33/' + safeFeeder + '/total']: poleTotal,
+      ['bop/poles33/' + safeFeeder + '/done']:  poleDone
+    });
+    _audit('bop.lines33.update', base, null, { poleTotal, poleDone, spanTotal, spanDone });
+    _notify('bop', 'Progress update',
+            feederId + ' · poles ' + poleDone + '/' + poleTotal + ' · spans ' + spanDone + '/' + spanTotal);
+    pushDailyProgress({ module:'BOP', act:'33kV ' + feederId,
+                        pct: poleTotal>0 ? Math.round(poleDone/poleTotal*100) : 0 }).catch(()=>{});
+  }
+
+  async function updateBop33Poles(feederId, poles) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!feederId) throw new Error('Bad feederId');
+    const safeFeeder = String(feederId).replace(/[.#$\[\]/]/g, '_');
+    const base = 'bop/poles33/' + safeFeeder + '/';
+    const total = Math.max(0, Number(poles && poles.total) || 0);
+    const done  = Math.max(0, Number(poles && poles.done)  || 0);
+    await fbDB.ref().update({
+      [base + 'total']: total,
+      [base + 'done']:  done,
+      [base + 'lastBy']: me.uid,
+      [base + 'lastAt']: fbServerTs
+    });
+    _audit('bop.poles33.update', base, null, { total, done });
+    pushDailyProgress({ module:'BOP', act:'33kV Poles · ' + feederId,
+                        pct: total>0 ? Math.round(done/total*100) : 0 }).catch(()=>{});
+  }
+
+  async function updateBopFeeder(feederIdx, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const base = 'bop/feeders33/' + feederIdx + '/';
+    const updates = {};
+    Object.entries(patch).forEach(([k, v]) => { updates[base + k] = v; });
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    console.log('[data] write bop feeder33:', feederIdx, patch);
+    await fbDB.ref().update(updates);
+    _audit('bop.feeder.update', base, null, patch);
+    // FIX 6
+    pushDailyProgress({ module:'BOP', turbine:'33kV-FDR-' + feederIdx, act:'Feeder update' }).catch(()=>{});
+  }
+
+  /**
+   * Update a single 66kV feeder activity. The 66kV side stores acts as
+   * an array of progress numbers per feeder, so the leaf path is
+   *   /bop/acts66/{feederId}/{actIdx}
+   * and value is a number 0..100.
+   */
+  async function updateBop66Act(feederId, actIdx, value) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!feederId) throw new Error('Bad feederId');
+    const safeFeeder = String(feederId).replace(/[.#$\[\]/]/g, '_');
+    const path = 'bop/acts66/' + safeFeeder + '/' + Number(actIdx);
+    const v    = Math.max(0, Math.min(100, Number(value) || 0));
+    console.log('[data] write bop 66kV:', feederId, actIdx, v);
+    await fbDB.ref().update({
+      [path]: v,
+      ['bop/acts66/' + safeFeeder + '/lastBy']: me.uid,
+      ['bop/acts66/' + safeFeeder + '/lastAt']: fbServerTs
+    });
+    _audit('bop.66kv.update', path, null, { value: v });
+    // FIX 6 — auto-feed into /dailyProgress. The renderer (submit66FeederProg)
+    // used to push its own entry; we now push from a single place to avoid
+    // double-rendering the same edit in the feed.
+    let actName = 'Activity ' + actIdx;
+    try {
+      if (typeof DB !== 'undefined' && DB.bopActDefs && DB.bopActDefs['66kv'] && DB.bopActDefs['66kv'][actIdx]) {
+        actName = DB.bopActDefs['66kv'][actIdx].n || actName;
+      }
+    } catch (e) {}
+    pushDailyProgress({ module:'BOP', turbine: feederId, act: '66kV · ' + actName, pct: v }).catch(()=>{});
+  }
+
+  async function updatePssAct(actName, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const base = 'bop/pss/acts/' + actName.replace(/[.#$\[\]/]/g,'_') + '/';
+    const updates = {};
+    if (patch.done !== undefined) updates[base + 'done'] = Number(patch.done) || 0;
+    if (patch.wip  !== undefined) updates[base + 'wip']  = Number(patch.wip)  || 0;
+    if (patch.scope!== undefined) updates[base + 'scope']= Number(patch.scope)|| 0;
+    await fbDB.ref().update(updates);
+    _audit('bop.pss.update', base, null, patch);
+    // FIX 6
+    pushDailyProgress({ module:'PSS', act: actName, pct: Number(patch.done) || 0 }).catch(()=>{});
+  }
+  async function updateGssAct(actName, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const base = 'bop/gss/acts/' + actName.replace(/[.#$\[\]/]/g,'_') + '/';
+    const updates = {};
+    if (patch.done !== undefined) updates[base + 'done'] = Number(patch.done) || 0;
+    if (patch.wip  !== undefined) updates[base + 'wip']  = Number(patch.wip)  || 0;
+    if (patch.scope!== undefined) updates[base + 'scope']= Number(patch.scope)|| 0;
+    await fbDB.ref().update(updates);
+    _audit('bop.gss.update', base, null, patch);
+    // FIX 6
+    pushDailyProgress({ module:'GSS', act: actName, pct: Number(patch.done) || 0 }).catch(()=>{});
+  }
+
+  // ===========================================================
+  //  Land — admin-only writes
+  // ===========================================================
+
+  /** Update a WTG land record at /land/wtgLocs/{locId}. Admin-only. */
+  async function updateWtgLand(locId, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!locId) throw new Error('locId required');
+    const base = 'land/wtgLocs/' + String(locId).replace(/[.#$\[\]/]/g,'_') + '/';
+    const updates = {};
+    Object.entries(patch).forEach(([k, v]) => {
+      // Allow nested paths like 'stages/3' to update array indices in place
+      updates[base + k] = v;
+    });
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    console.log('[data] write land/wtgLocs:', locId, patch);
+    await fbDB.ref().update(updates);
+    _audit('land.wtg.update', base, null, patch);
+  }
+
+  /** Update a Solar land block activity at /land/solBlocks/{blockId}/acts/{idx}. Admin-only. */
+  async function updateSolLand(blockId, actIdx, value) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!blockId) throw new Error('blockId required');
+    const safeId = String(blockId).replace(/[.#$\[\]/]/g, '_');
+    const path = 'land/solBlocks/' + safeId + '/acts/' + Number(actIdx);
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    console.log('[data] write land/solBlocks:', blockId, actIdx, v);
+    await fbDB.ref().update({
+      [path]: v,
+      ['land/solBlocks/' + safeId + '/lastBy']: me.uid,
+      ['land/solBlocks/' + safeId + '/lastAt']: fbServerTs
+    });
+    _audit('land.sol.update', path, null, { value: v });
+  }
+
+  /** Add a land parcel record at /land/parcels/{pushId}. Admin-only. */
+  async function addLandParcel(parcel) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const ref = fbDB.ref('land/parcels').push();
+    const payload = {
+      module: String(parcel.module || ''),
+      name:   String(parcel.name   || '').slice(0, 100),
+      lat:    Number(parcel.lat) || 0,
+      lng:    Number(parcel.lng) || 0,
+      area:   Number(parcel.area) || 0,
+      notes:  String(parcel.notes || '').slice(0, 500),
+      by:     me.uid,
+      byName: me.name,
+      ts:     fbServerTs
+    };
+    console.log('[data] write land/parcels add:', payload.name);
+    await ref.set(payload);
+    _audit('land.parcel.add', ref.toString(), null, payload);
+    return { id: ref.key };
+  }
+
+  /** Update an existing land parcel. Admin-only. */
+  async function updateLandParcel(id, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('parcel id required');
+    const base = 'land/parcels/' + String(id).replace(/[.#$\[\]/]/g, '_') + '/';
+    const updates = {};
+    ['module','name','lat','lng','area','notes'].forEach(k => {
+      if (patch[k] !== undefined) updates[base + k] = patch[k];
+    });
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    console.log('[data] write land/parcels update:', id);
+    await fbDB.ref().update(updates);
+    _audit('land.parcel.update', base, null, patch);
+  }
+
+  // ===========================================================
+  //  HSE
+  // ===========================================================
+
+  async function addHseObservation(obs) {
+    const me = _u();
+    const ref = fbDB.ref('hse/observations').push();
+    const payload = {
+      type:     String(obs.type || ''),
+      severity: String(obs.severity || ''),
+      desc:     String(obs.desc || '').slice(0, 1000),
+      area:     String(obs.area || ''),
+      photoURL: obs.photoURL ? String(obs.photoURL) : null,
+      status:   obs.status || 'open',
+      by:       me.uid,
+      byName:   me.name,
+      ts:       fbServerTs
+    };
+    await ref.set(payload);
+    _audit('hse.obs.add', ref.toString(), null, payload);
+    _notify('hse', 'HSE observation logged',
+            (payload.severity ? payload.severity + ' · ' : '') + (payload.desc || payload.obs || '').slice(0, 120));
+    return { id: ref.key };
+  }
+
+  async function updateHseObservation(id, patch) {
+    _u();
+    const base = 'hse/observations/' + id + '/';
+    const updates = {};
+    ['status','desc','obs','severity','photoURL','closedBy','loc','vendor','action'].forEach(k => {
+      if (patch[k] !== undefined) updates[base + k] = patch[k];
+    });
+    await fbDB.ref().update(updates);
+    _audit('hse.obs.update', base, null, patch);
+    if (patch.status) _notify('hse', 'HSE observation ' + String(patch.status).toLowerCase(), 'Observation marked ' + patch.status);
+  }
+
+  async function deleteHseObservation(id) {
+    _u();
+    const base = 'hse/observations/' + id;
+    const before = (await fbDB.ref(base).get()).val();
+    console.log('[data] delete hse obs:', id);
+    await fbDB.ref(base).remove();
+    _audit('hse.obs.delete', base, before, null);
+  }
+
+  /** Add an HSE employee record. Any non-viewer authed user. */
+  async function addHseEmployee(emp) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const ref = fbDB.ref('hse/employees').push();
+    const payload = {
+      name:  String(emp.name || '').slice(0, 80),
+      code:  String(emp.code || '').slice(0, 30),
+      score: Math.max(0, Math.min(100, Number(emp.score) || 0)),
+      ts:    fbServerTs
+    };
+    console.log('[data] write hse employee add:', payload.code, payload.name);
+    await ref.set(payload);
+    _audit('hse.emp.add', ref.toString(), null, payload);
+    return { id: ref.key };
+  }
+
+  /** Update HSE employee fields. Any non-viewer authed user. */
+  async function updateHseEmployee(id, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Employee id required');
+    const base = 'hse/employees/' + String(id).replace(/[.#$\[\]/]/g,'_') + '/';
+    const updates = {};
+    if (patch.name  !== undefined) updates[base + 'name']  = String(patch.name).slice(0, 80);
+    if (patch.code  !== undefined) updates[base + 'code']  = String(patch.code).slice(0, 30);
+    if (patch.score !== undefined) updates[base + 'score'] = Math.max(0, Math.min(100, Number(patch.score) || 0));
+    console.log('[data] write hse employee update:', id, patch);
+    await fbDB.ref().update(updates);
+    _audit('hse.emp.update', base, null, patch);
+  }
+
+  /** Delete an HSE employee record. Any non-viewer authed user. */
+  async function deleteHseEmployee(id) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Employee id required');
+    const base = 'hse/employees/' + String(id).replace(/[.#$\[\]/]/g,'_');
+    const before = (await fbDB.ref(base).get()).val();
+    console.log('[data] delete hse employee:', id);
+    await fbDB.ref(base).remove();
+    _audit('hse.emp.delete', base, before, null);
+  }
+
+  // ===========================================================
+  //  Solar land leases — push children at
+  //  /land/solBlocks/{blockId}/leases/{pushId}
+  //  so submitAddLease / removeLease survive refresh and sync
+  //  to every device in real time.
+  // ===========================================================
+
+  /** Add a lease entry under a solar land block. Login required. */
+  async function addSolLease(blockId, lease) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!blockId) throw new Error('blockId required');
+    const safeId = String(blockId).replace(/[.#$\[\]/]/g, '_');
+    const ref = fbDB.ref('land/solBlocks/' + safeId + '/leases').push();
+    const payload = {
+      own: String(lease.own || '').slice(0, 100),
+      svy: String(lease.svy || '').slice(0, 60),
+      dur: String(lease.dur || '').slice(0, 30),
+      ls:  String(lease.ls  || 'Pending').slice(0, 30),
+      doc: String(lease.doc || 'Pending').slice(0, 30),
+      reg: String(lease.reg || 'Pending').slice(0, 30),
+      rem: String(lease.rem || '').slice(0, 300),
+      by: me.uid, byName: me.name, ts: fbServerTs
+    };
+    console.log('[data] write land lease add:', blockId, payload.svy);
+    await ref.set(payload);
+    _audit('land.lease.add', ref.toString(), null, payload);
+    _notify('land', 'Lease added', blockId + ' · ' + payload.svy + ' (' + payload.own + ')');
+    return { id: ref.key };
+  }
+
+  /** Remove a lease entry by its Firebase push id. Login required. */
+  async function removeSolLease(blockId, leaseId) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!blockId || !leaseId) throw new Error('blockId and leaseId required');
+    const safeId = String(blockId).replace(/[.#$\[\]/]/g, '_');
+    const base = 'land/solBlocks/' + safeId + '/leases/' + String(leaseId).replace(/[.#$\[\]/]/g,'_');
+    const before = (await fbDB.ref(base).get()).val();
+    console.log('[data] delete land lease:', blockId, leaseId);
+    await fbDB.ref(base).remove();
+    _audit('land.lease.delete', base, before, null);
+  }
+
+  // ===========================================================
+  //  Misc lists (blockers, milestones, schedule)
+  // ===========================================================
+
+  async function addBlocker(b) {
+    const me = _u();
+    const ref = fbDB.ref('blockers').push();
+    await ref.set({
+      title:    String(b.title || ''),
+      severity: String(b.severity || ''),
+      module:   String(b.module || ''),
+      desc:     String(b.desc || '').slice(0,500),
+      by:       me.uid,
+      ts:       fbServerTs
+    });
+    _audit('blocker.add', ref.toString(), null, b);
+    _notify((b.module || 'general').toLowerCase(), 'Blocker raised',
+            (b.severity ? b.severity + ' · ' : '') + (b.title || '') + (b.desc ? ' — ' + b.desc : ''));
+    return { id: ref.key };
+  }
+
+  async function addMilestone(m) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const ref = fbDB.ref('milestones').push();
+    const payload = {
+      title: String(m.title || '').slice(0, 200),
+      date:  String(m.date  || ''),
+      mod:   String(m.mod   || 'Overall').slice(0, 30),
+      by:    me.uid,
+      byName:me.name,
+      ts:    fbServerTs
+    };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.date)) throw new Error('Invalid milestone date.');
+    if (!payload.title) throw new Error('Milestone title required.');
+    await ref.set(payload);
+    _audit('milestone.add', ref.toString(), null, payload);
+    return { id: ref.key };
+  }
+
+  async function updateMilestone(id, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Milestone id required.');
+    const base = 'milestones/' + id + '/';
+    const updates = {};
+    if (patch.title !== undefined) updates[base + 'title'] = String(patch.title).slice(0, 200);
+    if (patch.date  !== undefined) updates[base + 'date']  = String(patch.date);
+    if (patch.mod   !== undefined) updates[base + 'mod']   = String(patch.mod).slice(0, 30);
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit('milestone.update', base, null, patch);
+  }
+
+  async function deleteMilestone(id) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Milestone id required.');
+    const base = 'milestones/' + id;
+    const before = (await fbDB.ref(base).get()).val();
+    await fbDB.ref(base).remove();
+    _audit('milestone.delete', base, before, null);
+  }
+
+  // ===========================================================
+  //  ROW Issues — auth-protected, viewer cannot edit
+  // ===========================================================
+
+  async function addRowIssue(r) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const ref = fbDB.ref('rowIssues').push();
+    const payload = {
+      loc:      String(r.loc      || '').slice(0, 100),
+      issue:    String(r.issue    || '').slice(0, 500),
+      type:     String(r.type     || 'Other'),
+      status:   String(r.status   || 'Open'),
+      opened:   String(r.opened   || todayISO()),
+      expClear: String(r.expClear || ''),
+      raisedBy: String(r.raisedBy || me.name || me.uid).slice(0, 80),
+      by:       me.uid,
+      byName:   me.name,
+      ts:       fbServerTs
+    };
+    if (!['WTG','Solar','BOP','Other'].includes(payload.type))     payload.type   = 'Other';
+    if (!['Open','Closed','In Progress'].includes(payload.status)) payload.status = 'Open';
+    if (!payload.loc)   throw new Error('Location is required.');
+    if (!payload.issue) throw new Error('Issue description is required.');
+    await ref.set(payload);
+    _audit('row.add', ref.toString(), null, payload);
+    _notify(payload.type === 'Solar' ? 'solar' : payload.type === 'WTG' ? 'wtg' : payload.type === 'BOP' ? 'bop' : 'general',
+            'ROW issue raised', payload.loc + ' — ' + payload.issue);
+    return { id: ref.key };
+  }
+
+  async function updateRowIssue(id, patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Row id required.');
+    const base = 'rowIssues/' + id + '/';
+    const updates = {};
+    ['loc','issue','type','status','expClear','raisedBy'].forEach(k => {
+      if (patch[k] !== undefined) updates[base + k] = String(patch[k]);
+    });
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit('row.update', base, null, patch);
+  }
+
+  async function deleteRowIssue(id) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!id) throw new Error('Row id required.');
+    const base = 'rowIssues/' + id;
+    const before = (await fbDB.ref(base).get()).val();
+    await fbDB.ref(base).remove();
+    _audit('row.delete', base, before, null);
+  }
+
+  // ===========================================================
+  //  Gantt Rows — admin / Site Manager only
+  // ===========================================================
+
+  async function setGanttRows(rows) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    if (!Array.isArray(rows)) throw new Error('Rows must be an array.');
+    const sanitized = rows.map(r => ({
+      l:  String(r.l || '').slice(0, 120),
+      ps: String(r.ps || ''),
+      pe: String(r.pe || ''),
+      as: String(r.as || ''),
+      ae: String(r.ae || ''),
+      c:  String(r.c  || 'var(--ac)').slice(0, 30)
+    }));
+    await fbDB.ref('ganttRows').set(sanitized);
+    _audit('gantt.set', 'ganttRows', null, { count: sanitized.length });
+  }
+
+  // ===========================================================
+  //  WTG — Zero Point (Store Yard)
+  // ===========================================================
+  async function setZeroPoint(zp) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit Zero Point.');
+    await fbDB.ref('wtg/zeroPoint').set(zp || {});
+    _audit('wtg.zeroPoint.set', 'wtg/zeroPoint', null, { matCount: (zp && zp.materials || []).length });
+  }
+
+  // ===========================================================
+  //  WTG — Custom activity tree (global, shared by all turbines)
+  // ===========================================================
+  async function setWtgCustomActs(customActs) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit activity tree.');
+    await fbDB.ref('wtg/customActs').set(customActs || {});
+    _audit('wtg.customActs.set', 'wtg/customActs', null, {
+      pre: (customActs && customActs.pre || []).length,
+      erection: (customActs && customActs.erection || []).length,
+      post: (customActs && customActs.post || []).length
+    });
+  }
+
+  // WTG header-KPI manual overrides {casting, lp, pp, ready, erection, uss, commissioned}
+  async function setWtgKpiOverrides(ov) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit KPI values.');
+    await fbDB.ref('wtg/kpiOverrides').set(ov || {});
+    _audit('wtg.kpiOverrides.set', 'wtg/kpiOverrides', null, ov || {});
+  }
+
+  // ===========================================================
+  //  Solar — per-ITC update + custom activity tree
+  // ===========================================================
+  async function setSolarItc(itcId, itc) {
+    if (!auth.canEdit('solar')) throw new Error('🔒 Solar login required.');
+    await fbDB.ref('solar/itcs/' + itcId).set(itc || {});
+    _audit('solar.itc.set', 'solar/itcs/' + itcId, null, {
+      mw: (itc && itc.mw) || 0,
+      hasActs: !!(itc && itc.solActs)
+    });
+  }
+
+  async function setSolarCustomActs(customActs) {
+    if (!auth.canEdit('solar')) throw new Error('🔒 Solar login required.');
+    await fbDB.ref('solar/customActs').set(customActs || {});
+    _audit('solar.customActs.set', 'solar/customActs', null, {
+      pre: (customActs && customActs.pre || []).length,
+      install: (customActs && customActs.install || []).length,
+      post: (customActs && customActs.post || []).length
+    });
+  }
+
+  // ===========================================================
+  //  Daily Progress feed — every Solar/WTG update lands here
+  // ===========================================================
+
+  // Session-level progress date: section forms set this (via setProgressDate)
+  // so that writes which don't pass an explicit date still land on the chosen
+  // day. Cleared back to null (=today) after each form submit.
+  let _sessionProgressDate = null;
+  function setProgressDate(iso){
+    _sessionProgressDate = (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) ? iso : null;
+  }
+
+  async function pushDailyProgress(entry) {
+    // Internal helper: called by renderers after a Solar/WTG/BOP/Land write.
+    // Drops a richer log entry on /dailyProgress so the home DPR can show
+    // it as a bullet point. In demo mode, anonymous calls are accepted —
+    // byName falls back to the demo display name or 'Anonymous'.
+    if (!entry.date && _sessionProgressDate) entry = Object.assign({}, entry, { date: _sessionProgressDate });
+    const me = auth.current();
+    const ref = fbDB.ref('dailyProgress').push();
+    // Allow back-dating: if a valid ISO date is supplied, stamp the entry with
+    // that day (so progress recorded for a previous date lands on the right
+    // day in the dashboard, manpower view and reports). Otherwise use now.
+    const customDate = (entry.date && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)) ? entry.date : null;
+    const tsForDate = customDate ? (new Date(customDate + 'T12:00:00').getTime()) : fbServerTs;
+    const payload = {
+      module:  String(entry.module || '').slice(0, 20),
+      itc:     entry.itc     ? String(entry.itc).slice(0, 20)     : null,
+      turbine: entry.turbine ? String(entry.turbine).slice(0, 20) : null,
+      activity: String(entry.act || entry.activity || '').slice(0, 200),
+      act:     String(entry.act || entry.activity || '').slice(0, 200),
+      sub:     entry.sub   ? String(entry.sub).slice(0, 200) : null,
+      val:     entry.val   !== undefined ? Number(entry.val)   || 0 : null,
+      pct:     entry.pct   !== undefined ? Number(entry.pct)   || 0 : null,
+      today:   entry.today !== undefined ? Number(entry.today) || 0 : null,
+      date:    customDate || todayISO(),
+      by:      me ? me.uid : 'anon',
+      byName:  me ? me.name : 'Anonymous',
+      ts:      tsForDate
+    };
+    await ref.set(payload);
+    return { id: ref.key };
+  }
+
+  // ===========================================================
+  //  Schedule (S-curve)  — admin only
+  // ===========================================================
+
+  async function updateSchedule(patch) {
+    const me = _u();
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit (use the section credentials, or Site Manager).');
+    const updates = {};
+    if (Array.isArray(patch.planned)) updates['schedule/planned'] = patch.planned.map(n => Number(n) || 0);
+    if (Array.isArray(patch.actual))  updates['schedule/actual']  = patch.actual.map(n => n === null ? null : Number(n) || 0);
+    if (Array.isArray(patch.labels))  updates['schedule/labels']  = patch.labels.map(s => String(s).slice(0, 20));
+    await fbDB.ref().update(updates);
+    _audit('schedule.update', 'schedule', null, patch);
+  }
+
+  // ===========================================================
+  //  User profile (own name only; never role)
+  // ===========================================================
+
+  async function setUserProfile(patch) {
+    const me = _u();
+    const updates = {};
+    if (patch.name)  updates['users/' + me.uid + '/name']  = String(patch.name).slice(0,80);
+    if (patch.email) updates['users/' + me.uid + '/email'] = String(patch.email).slice(0,120);
+    // role is intentionally absent — rules reject it from non-admins anyway.
+    await fbDB.ref().update(updates);
+  }
+
+  // ===========================================================
+  //  Debounced batched write (used by sliders/spinners)
+  // ===========================================================
+  // Some UIs (e.g. ITC sub-activity sliders) fire dozens of
+  // value-change events as the user drags. Debounce them so we
+  // only push one update per ~400ms — much kinder to the free
+  // tier quotas.
+
+  const _pending = {};
+  let _pendingTimer = null;
+  function debouncedUpdate(path, value) {
+    _pending[path] = value;
+    clearTimeout(_pendingTimer);
+    _pendingTimer = setTimeout(() => {
+      const u = _pending; Object.keys(u).length && fbDB.ref().update(u).catch(e => console.warn('[dataApi] debouncedUpdate failed:', e));
+      Object.keys(_pending).forEach(k => delete _pending[k]);
+    }, 400);
+  }
+
+  // ===========================================================
+  //  DAILY SNAPSHOTS
+  // ===========================================================
+  // A snapshot captures a compact picture of progress for one calendar
+  // day. Stored at /snapshots/{YYYY-MM-DD}. The current day's snapshot is
+  // auto-written (debounced) whenever progress changes; past snapshots can
+  // be re-saved when a user edits historical data.
+  //
+  //   snapshot = {
+  //     date, savedAt, savedBy,
+  //     wtg:  { overall, turbines:{ id:{pct,status,lp,pp} } },
+  //     solar:{ overall, itcs:{ id:{pct,pre,install,post} } },
+  //     bop:  { overall, b33, b66, pss, gss }
+  //   }
+
+  // Build a snapshot object from the CURRENT live DB state.
+  function buildSnapshot(dateStr) {
+    const date = (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) ? dateStr : todayISO();
+    const snap = { date, savedAt: Date.now(), savedBy: _u().uid || 'system' };
+
+    // WTG
+    try {
+      const turbs = {};
+      (DB.wtg && DB.wtg.turbines || []).forEach(t => {
+        turbs[t.id] = {
+          pct:    (typeof calcTurbProg === 'function') ? calcTurbProg(t) : 0,
+          status: t.status || 'pending',
+          lp: !!t.lp, pp: !!t.pp
+        };
+      });
+      snap.wtg = {
+        overall: (typeof calcWtgProg === 'function') ? calcWtgProg() : 0,
+        turbines: turbs
+      };
+    } catch(e){ snap.wtg = { overall:0, turbines:{} }; }
+
+    // Solar
+    try {
+      const itcs = {};
+      Object.entries(DB.solar && DB.solar.itcs || {}).forEach(([id,d]) => {
+        const sp = (typeof solItcActsPct === 'function') ? solItcActsPct(d) : {pre:0,install:0,post:0};
+        itcs[id] = {
+          pct:     (typeof calcITCProg === 'function') ? calcITCProg(id) : 0,
+          pre: sp.pre, install: sp.install, post: sp.post
+        };
+      });
+      snap.solar = {
+        overall: (typeof calcSolarProg === 'function') ? calcSolarProg() : 0,
+        itcs: itcs
+      };
+    } catch(e){ snap.solar = { overall:0, itcs:{} }; }
+
+    // BOP
+    try {
+      snap.bop = {
+        overall: (typeof calcBopProg     === 'function') ? calcBopProg()     : 0,
+        b33:     (typeof calcBop33PctV2  === 'function') ? calcBop33PctV2()  : 0,
+        b66:     (typeof calcBop66PctV2  === 'function') ? calcBop66PctV2()  : 0,
+        pss:     (typeof calcPssPct      === 'function') ? calcPssPct()      : 0,
+        gss:     (typeof calcGssPct      === 'function') ? calcGssPct()      : 0
+      };
+    } catch(e){ snap.bop = { overall:0, b33:0, b66:0, pss:0, gss:0 }; }
+
+    return snap;
+  }
+
+  // Write a snapshot for a given date (defaults to today). Public — the
+  // auto-saver runs without a login so snapshots never get skipped.
+  async function saveSnapshot(dateStr) {
+    const snap = buildSnapshot(dateStr);
+    try {
+      await fbDB.ref('snapshots/' + snap.date).set(snap);
+    } catch(e){ console.warn('[snapshot] save failed:', e); }
+    return snap;
+  }
+
+  // Debounced auto-save of TODAY's snapshot — call after any progress change.
+  let _snapTimer = null;
+  function autoSnapshot() {
+    clearTimeout(_snapTimer);
+    _snapTimer = setTimeout(() => { saveSnapshot(todayISO()); }, 3000);
+  }
+
+  // Fetch one date's snapshot (null if none exists).
+  async function getSnapshot(dateStr) {
+    try {
+      const s = await fbDB.ref('snapshots/' + dateStr).once('value');
+      return s.exists() ? s.val() : null;
+    } catch(e){ console.warn('[snapshot] get failed:', e); return null; }
+  }
+
+  // List the dates that have snapshots (sorted, newest first).
+  async function listSnapshotDates() {
+    try {
+      const s = await fbDB.ref('snapshots').once('value');
+      if (!s.exists()) return [];
+      return Object.keys(s.val()).sort().reverse();
+    } catch(e){ return []; }
+  }
+
+  // Save an EDITED historical snapshot (login required for past-date edits).
+  async function updateSnapshot(dateStr, snap) {
+    if (!auth.canEdit()) throw new Error('🔒 Login required to edit historical data.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) throw new Error('Bad date');
+    snap.date = dateStr;
+    snap.savedAt = Date.now();
+    snap.savedBy = _u().uid || 'edit';
+    snap.edited = true;
+    await fbDB.ref('snapshots/' + dateStr).set(snap);
+    _audit('snapshot.edit', 'snapshots/' + dateStr, null, { date: dateStr });
+  }
+
+  global.dataApi = {
+    todayISO,
+    buildSnapshot, saveSnapshot, autoSnapshot, getSnapshot,
+    listSnapshotDates, updateSnapshot,
+    // POD + Daily Progress (PUBLIC — no login required)
+    addPod,
+    addDailyProgress,
+    pushDailyProgress,                      // internal richer log (auth-required, used by renderers)
+    setProgressDate,                        // back-dating: set session progress date for forms
+    // POD status / remarks / next-day plan / ITC live activities (login required)
+    updatePodStatus,
+    addNextDayPlan, deleteNextDayPlan,
+    updateItcLiveActivities,
+    // Solar
+    updateSolarAct, updateSolarMeta,
+    // WTG
+    updateTurbine,
+    setZeroPoint,
+    setWtgCustomActs,
+    setWtgKpiOverrides,
+    setSolarItc,
+    setSolarCustomActs,
+    // BOP — all four sub-sections
+    updateBopAct, updateBopFeeder, updateBop66Act, updateBop33Poles, updateBop33Line, updatePssAct, updateGssAct,
+    // HSE
+    addHseObservation, updateHseObservation, deleteHseObservation,
+    addHseEmployee,    updateHseEmployee,    deleteHseEmployee,
+    // Land
+    updateWtgLand, updateSolLand, addLandParcel, updateLandParcel,
+    addSolLease, removeSolLease,
+    // Lists
+    addBlocker,
+    addMilestone, updateMilestone, deleteMilestone,
+    addRowIssue, updateRowIssue, deleteRowIssue,
+    // Admin-only
+    setGanttRows,
+    updateSchedule,
+    setUserProfile,
+    debouncedUpdate,
+    notify: _notify
+  };
+
+})(window);
+
+
+// ═══════════════════════════════════════════════════════════════
+//  data-api.js — EXTENSION BLOCK (v11 "firebase-hardening")
+//
+//  New modules: Vendors, Purchase Orders, Inventory (append-only
+//  ledger), Planning (tasks + baselines + reverse dependency
+//  index), Documents (Storage-backed, versioned metadata).
+//
+//  Every mutator here follows the SAME contract as the block above:
+//    • leaf-level fbDB.ref().update({...}) — never parent .set()
+//    • push() keys for growing lists
+//    • lastBy / lastAt (or by / ts) stamped on every write
+//    • _audit() + _notify() on every mutation
+//    • basic input validation (required fields, numeric ranges,
+//      date sanity) BEFORE anything touches the wire
+//
+//  RTDB tree added by this block (full reference in
+//  docs/FIREBASE-TREE.md):
+//
+//    /vendors/{vendorId}                     vendor master
+//    /purchaseOrders/{poId}                  header (denormalized vendorName)
+//    /purchaseOrders/{poId}/lineItems/{id}
+//    /inventory/items/{itemId}               item master (minStock for alerts)
+//    /inventory/movements/{YYYY-MM-DD}/{pushId}   APPEND-ONLY ledger
+//    /planning/tasks/{taskId}                predecessorIds: {taskId:true}
+//    /planning/dependents/{taskId}/{depId}   REVERSE index (maintained here)
+//    /planning/baselines/{taskId}            frozen {start,end} pairs
+//    /documents/{docId}                      metadata only; files in Storage
+//    /documents/{docId}/versions/{verId}
+// ═══════════════════════════════════════════════════════════════
+
+(function (global) {
+
+  const api = global.dataApi;
+  if (!api) { console.error('[data-ext] dataApi missing — load order broken'); return; }
+
+  function _me() {
+    const p = (global.auth && auth.current && auth.current()) || null;
+    return p || { uid: 'anon', name: 'Anonymous', role: 'viewer' };
+  }
+  function _need(section) {
+    // Same gate style as the core block: section credentials or admin.
+    if (!(global.auth && auth.canEdit && auth.canEdit(section))) {
+      throw new Error('🔒 Login required — use the ' + (section || 'section') + ' credentials, or Site Manager.');
+    }
+  }
+  function _audit2(action, path, before, after) {
+    try {
+      const me = _me();
+      fbDB.ref('audit/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)).set({
+        uid: me.uid, role: me.role || '?', action, path,
+        before: before === undefined ? null : before,
+        after:  after  === undefined ? null : after,
+        ts: fbServerTs
+      }).catch(() => {});
+    } catch (e) {}
+  }
+  const _notify2 = api.notify || function () {};
+  function _safeKey(s) { return String(s).replace(/[.#$\[\]\/]/g, '_'); }
+  function _isISO(d) { return /^\d{4}-\d{2}-\d{2}$/.test(String(d || '')); }
+  function _reqStr(v, label, max) {
+    v = String(v == null ? '' : v).trim();
+    if (!v) throw new Error(label + ' is required.');
+    return v.slice(0, max || 200);
+  }
+  function _num(v, label, min, max) {
+    const n = Number(v);
+    if (!isFinite(n)) throw new Error(label + ' must be a number.');
+    if (min !== undefined && n < min) throw new Error(label + ' must be ≥ ' + min);
+    if (max !== undefined && n > max) throw new Error(label + ' must be ≤ ' + max);
+    return n;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  VENDORS  —  /vendors/{vendorId}
+  // ─────────────────────────────────────────────────────────────
+  async function addVendor(v) {
+    _need('procurement'); const me = _me();
+    const ref = fbDB.ref('vendors').push();
+    const payload = {
+      name:     _reqStr(v.name, 'Vendor name', 120),
+      category: _reqStr(v.category || 'General', 'Category', 60),
+      contact:  String(v.contact || '').slice(0, 120),
+      phone:    String(v.phone   || '').slice(0, 30),
+      email:    String(v.email   || '').slice(0, 120),
+      gstin:    String(v.gstin   || '').slice(0, 20),
+      address:  String(v.address || '').slice(0, 300),
+      rating:   Math.max(0, Math.min(5, Number(v.rating) || 0)),
+      status:   'active',
+      by: me.uid, byName: me.name, ts: fbServerTs
+    };
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) throw new Error('Invalid email address.');
+    await ref.set(payload);
+    _audit2('vendor.add', 'vendors/' + ref.key, null, { name: payload.name });
+    _notify2('procurement', 'Vendor added', payload.name + ' (' + payload.category + ')');
+    return { id: ref.key };
+  }
+
+  async function updateVendor(id, patch) {
+    _need('procurement'); const me = _me();
+    if (!id) throw new Error('vendor id required');
+    const base = 'vendors/' + _safeKey(id) + '/';
+    const updates = {};
+    ['name','category','contact','phone','email','gstin','address','status'].forEach(k => {
+      if (patch[k] !== undefined) updates[base + k] = String(patch[k]).slice(0, 300);
+    });
+    if (patch.rating !== undefined) updates[base + 'rating'] = Math.max(0, Math.min(5, Number(patch.rating) || 0));
+    if (!Object.keys(updates).length) return;
+    updates[base + 'lastBy'] = me.uid;
+    updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit2('vendor.update', base, null, patch);
+  }
+
+  // Soft-archive; PO history references stay intact (denormalized vendorName).
+  async function archiveVendor(id) { return updateVendor(id, { status: 'archived' }); }
+
+  // ─────────────────────────────────────────────────────────────
+  //  PURCHASE ORDERS  —  /purchaseOrders/{poId}
+  //
+  //  Status workflow (enforced here AND in database.rules.json):
+  //      draft → approved → delivered → closed   (+ any → cancelled)
+  //  vendorName is DENORMALIZED into the PO header on purpose:
+  //  RTDB has no joins, so the PO table renders without a per-row
+  //  vendor lookup. If a vendor is renamed, historical POs keep
+  //  the name that was current at PO time — which is also the
+  //  commercially correct behaviour for a PO document.
+  // ─────────────────────────────────────────────────────────────
+  const PO_FLOW = { draft: ['approved', 'cancelled'], approved: ['delivered', 'cancelled'], delivered: ['closed'], closed: [], cancelled: [] };
+
+  async function createPO(po) {
+    _need('procurement'); const me = _me();
+    const vendorId = _reqStr(po.vendorId, 'Vendor', 100);
+    const vSnap = await fbDB.ref('vendors/' + _safeKey(vendorId)).once('value');
+    if (!vSnap.exists()) throw new Error('Vendor not found.');
+    const vendor = vSnap.val();
+    if (vendor.status === 'archived') throw new Error('Vendor is archived — reactivate before raising a PO.');
+    if (po.expectedDate && !_isISO(po.expectedDate)) throw new Error('Expected date must be YYYY-MM-DD.');
+    const ref = fbDB.ref('purchaseOrders').push();
+    const payload = {
+      poNumber:    _reqStr(po.poNumber || ('PO-' + new Date().getFullYear() + '-' + ref.key.slice(-5).toUpperCase()), 'PO number', 40),
+      vendorId,
+      vendorName:  vendor.name || '?',           // denormalized — see header note
+      module:      String(po.module || 'general').toLowerCase(),
+      description: String(po.description || '').slice(0, 500),
+      expectedDate: po.expectedDate || null,
+      currency:    'INR',
+      totalValue:  _num(po.totalValue || 0, 'Total value', 0),
+      status:      'draft',
+      attachmentURL: po.attachmentURL ? String(po.attachmentURL) : null,
+      by: me.uid, byName: me.name, ts: fbServerTs,
+      history: { [Date.now() + '_' + Math.random().toString(36).slice(2, 6)]: { ts: Date.now(), status: 'draft', by: me.uid, byName: me.name } }
+    };
+    await ref.set(payload);
+    _audit2('po.create', 'purchaseOrders/' + ref.key, null, { poNumber: payload.poNumber, vendor: payload.vendorName });
+    _notify2('procurement', 'PO created', payload.poNumber + ' · ' + payload.vendorName);
+    return { id: ref.key, poNumber: payload.poNumber };
+  }
+
+  async function addPOLineItem(poId, item) {
+    _need('procurement'); const me = _me();
+    if (!poId) throw new Error('poId required');
+    const poRef = fbDB.ref('purchaseOrders/' + _safeKey(poId));
+    const st = (await poRef.child('status').once('value')).val();
+    if (st !== 'draft') throw new Error('Line items can only be edited while the PO is a draft.');
+    const ref = poRef.child('lineItems').push();
+    const qty  = _num(item.qty,  'Quantity', 0.0001);
+    const rate = _num(item.rate, 'Rate', 0);
+    await ref.set({
+      itemName: _reqStr(item.itemName, 'Item name', 160),
+      itemId:   item.itemId ? _safeKey(item.itemId) : null,   // optional link to /inventory/items
+      unit:     String(item.unit || 'nos').slice(0, 20),
+      qty, rate, amount: Math.round(qty * rate * 100) / 100,
+      by: me.uid, ts: fbServerTs
+    });
+    // keep header total in sync via transaction (concurrent adders safe)
+    await poRef.child('totalValue').transaction(t => Math.round(((Number(t) || 0) + qty * rate) * 100) / 100);
+    _audit2('po.item.add', 'purchaseOrders/' + poId + '/lineItems/' + ref.key, null, { itemName: item.itemName, qty, rate });
+    return { id: ref.key };
+  }
+
+  async function deletePOLineItem(poId, itemId) {
+    _need('procurement');
+    const poRef = fbDB.ref('purchaseOrders/' + _safeKey(poId));
+    const st = (await poRef.child('status').once('value')).val();
+    if (st !== 'draft') throw new Error('Line items can only be edited while the PO is a draft.');
+    const itRef = poRef.child('lineItems/' + _safeKey(itemId));
+    const it = (await itRef.once('value')).val();
+    if (!it) return;
+    await itRef.remove();
+    await poRef.child('totalValue').transaction(t => Math.max(0, Math.round(((Number(t) || 0) - (Number(it.amount) || 0)) * 100) / 100));
+    _audit2('po.item.delete', 'purchaseOrders/' + poId + '/lineItems/' + itemId, it, null);
+  }
+
+  async function updatePOStatus(poId, nextStatus, note) {
+    const me = _me();
+    // Approval requires admin; other transitions need procurement (or admin).
+    _need(nextStatus === 'approved' ? 'all' : 'procurement');
+    const poRef = fbDB.ref('purchaseOrders/' + _safeKey(poId));
+    const cur = (await poRef.child('status').once('value')).val();
+    if (!cur) throw new Error('PO not found.');
+    const allowed = PO_FLOW[cur] || [];
+    if (!allowed.includes(nextStatus)) {
+      throw new Error('Invalid transition: ' + cur + ' → ' + nextStatus + '. Allowed: ' + (allowed.join(', ') || 'none'));
+    }
+    const updates = {};
+    updates['status'] = nextStatus;
+    // Key = ts + random suffix: two transitions inside the same millisecond
+    // (e.g. scripted approvals) must never overwrite each other's history row.
+    const histKey = Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    updates['history/' + histKey] = { ts: Date.now(), status: nextStatus, by: me.uid, byName: me.name, note: String(note || '').slice(0, 300) };
+    updates['lastBy'] = me.uid; updates['lastAt'] = fbServerTs;
+    await poRef.update(updates);
+    _audit2('po.status', 'purchaseOrders/' + poId, { status: cur }, { status: nextStatus });
+    _notify2('procurement', 'PO ' + nextStatus, 'PO moved to ' + nextStatus + (note ? ' · ' + note : ''));
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  INVENTORY — /inventory/items + APPEND-ONLY movements ledger
+  //
+  //  There is deliberately NO mutable "currentStock" field written
+  //  by the client. Stock = Σ(ledger). The renderer computes it
+  //  client-side from the movements it has loaded; a maintained-
+  //  total node would need a Cloud Function trigger (Blaze plan) —
+  //  documented as a scaling path in docs/SCALABILITY.md.
+  //  Movements are date-keyed exactly like /pod so history is
+  //  cheap to window and two engineers can never overwrite each
+  //  other (each movement is its own pushId).
+  // ─────────────────────────────────────────────────────────────
+  async function addInventoryItem(item) {
+    _need('store'); const me = _me();
+    const ref = fbDB.ref('inventory/items').push();
+    await ref.set({
+      name:     _reqStr(item.name, 'Item name', 160),
+      category: String(item.category || 'General').slice(0, 60),
+      unit:     String(item.unit || 'nos').slice(0, 20),
+      minStock: Math.max(0, Number(item.minStock) || 0),   // low-stock alert threshold
+      location: String(item.location || 'Main Store').slice(0, 80),
+      status:   'active',
+      by: me.uid, byName: me.name, ts: fbServerTs
+    });
+    _audit2('inv.item.add', 'inventory/items/' + ref.key, null, { name: item.name });
+    return { id: ref.key };
+  }
+
+  async function updateInventoryItem(id, patch) {
+    _need('store'); const me = _me();
+    const base = 'inventory/items/' + _safeKey(id) + '/';
+    const updates = {};
+    ['name','category','unit','location','status'].forEach(k => { if (patch[k] !== undefined) updates[base + k] = String(patch[k]).slice(0, 160); });
+    if (patch.minStock !== undefined) updates[base + 'minStock'] = Math.max(0, Number(patch.minStock) || 0);
+    if (!Object.keys(updates).length) return;
+    updates[base + 'lastBy'] = me.uid; updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit2('inv.item.update', base, null, patch);
+  }
+
+  /**
+   * Append one ledger entry. type: 'in' | 'out' | 'adjust'.
+   * qty is always positive; the sign is derived from type
+   * ('adjust' may carry negative qty for stocktake corrections).
+   */
+  async function addStockMovement(mv) {
+    _need('store'); const me = _me();
+    const itemId = _safeKey(_reqStr(mv.itemId, 'Item', 100));
+    const type = String(mv.type || '').toLowerCase();
+    if (!['in', 'out', 'adjust'].includes(type)) throw new Error("Movement type must be 'in', 'out' or 'adjust'.");
+    let qty = _num(mv.qty, 'Quantity');
+    if (type !== 'adjust' && qty <= 0) throw new Error('Quantity must be > 0.');
+    const date = _isISO(mv.date) ? mv.date : api.todayISO();
+    if (date > api.todayISO()) throw new Error('Movement date cannot be in the future.');
+    const ref = fbDB.ref('inventory/movements/' + date).push();
+    const payload = {
+      itemId, type, qty,
+      ref:   String(mv.ref   || '').slice(0, 120),   // PO number / issue slip
+      to:    String(mv.to    || '').slice(0, 120),   // consumer / destination
+      notes: String(mv.notes || '').slice(0, 300),
+      by: me.uid, byName: me.name, ts: fbServerTs
+    };
+    await ref.set(payload);
+    _audit2('inv.move', 'inventory/movements/' + date + '/' + ref.key, null, { itemId, type, qty });
+    _notify2('store', 'Stock ' + type, itemId + ' · ' + qty + (mv.ref ? ' · ' + mv.ref : ''));
+    return { id: ref.key, date };
+  }
+
+  /**
+   * Site-to-site transfer = ONE atomic multi-path update writing
+   * two ledger rows (out@from, in@to) that succeed or fail together.
+   */
+  async function recordTransfer(t) {
+    _need('store'); const me = _me();
+    const itemId = _safeKey(_reqStr(t.itemId, 'Item', 100));
+    const qty = _num(t.qty, 'Quantity', 0.0001);
+    const from = _reqStr(t.from, 'From location', 80);
+    const to   = _reqStr(t.to, 'To location', 80);
+    if (from === to) throw new Error('From and To locations must differ.');
+    const date = _isISO(t.date) ? t.date : api.todayISO();
+    const base = 'inventory/movements/' + date + '/';
+    const k1 = fbDB.ref(base).push().key, k2 = fbDB.ref(base).push().key;
+    const stamp = { itemId, qty, by: me.uid, byName: me.name, ts: fbServerTs, transferId: k1 };
+    await fbDB.ref().update({
+      [base + k1]: { ...stamp, type: 'out', ref: 'TRANSFER', to, notes: 'Transfer ' + from + ' → ' + to, location: from },
+      [base + k2]: { ...stamp, type: 'in',  ref: 'TRANSFER', to, notes: 'Transfer ' + from + ' → ' + to, location: to }
+    });
+    _audit2('inv.transfer', base, null, { itemId, qty, from, to });
+    _notify2('store', 'Stock transfer', itemId + ' · ' + qty + ' · ' + from + ' → ' + to);
+    return { date, outId: k1, inId: k2 };
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  PLANNING — /planning/tasks + reverse dependency index
+  //
+  //  predecessorIds is stored as a map {taskId:true} (RTDB-friendly
+  //  set). Because RTDB cannot query "who depends on X", we also
+  //  maintain /planning/dependents/{X}/{taskId}:true in the SAME
+  //  atomic update — the reverse index can never drift from the
+  //  forward edges.
+  // ─────────────────────────────────────────────────────────────
+  function _asIdMap(arr) {
+    const m = {};
+    (Array.isArray(arr) ? arr : Object.keys(arr || {})).forEach(id => { if (id) m[_safeKey(id)] = true; });
+    return m;
+  }
+
+  async function addPlanTask(t) {
+    _need('planner'); const me = _me();
+    const name = _reqStr(t.name, 'Task name', 200);
+    if (!_isISO(t.start) || !_isISO(t.end)) throw new Error('Start and end dates are required (YYYY-MM-DD).');
+    if (t.end < t.start) throw new Error('End date cannot be before start date.');
+    const preds = _asIdMap(t.predecessorIds);
+    const ref = fbDB.ref('planning/tasks').push();
+    const updates = {
+      ['planning/tasks/' + ref.key]: {
+        name, module: String(t.module || 'general').toLowerCase(),
+        start: t.start, end: t.end,
+        progress: Math.max(0, Math.min(100, Number(t.progress) || 0)),
+        predecessorIds: Object.keys(preds).length ? preds : null,
+        by: me.uid, byName: me.name, ts: fbServerTs
+      }
+    };
+    Object.keys(preds).forEach(p => { updates['planning/dependents/' + p + '/' + ref.key] = true; });
+    await fbDB.ref().update(updates);
+    _audit2('plan.task.add', 'planning/tasks/' + ref.key, null, { name, start: t.start, end: t.end });
+    _notify2('planner', 'Task added', name);
+    return { id: ref.key };
+  }
+
+  async function updatePlanTask(id, patch) {
+    _need('planner'); const me = _me();
+    id = _safeKey(id);
+    const base = 'planning/tasks/' + id + '/';
+    const cur = (await fbDB.ref('planning/tasks/' + id).once('value')).val();
+    if (!cur) throw new Error('Task not found.');
+    const start = patch.start !== undefined ? patch.start : cur.start;
+    const end   = patch.end   !== undefined ? patch.end   : cur.end;
+    if (!_isISO(start) || !_isISO(end) || end < start) throw new Error('Invalid start/end dates.');
+    const updates = {};
+    if (patch.name     !== undefined) updates[base + 'name']     = _reqStr(patch.name, 'Task name', 200);
+    if (patch.module   !== undefined) updates[base + 'module']   = String(patch.module).toLowerCase();
+    if (patch.start    !== undefined) updates[base + 'start']    = patch.start;
+    if (patch.end      !== undefined) updates[base + 'end']      = patch.end;
+    if (patch.progress !== undefined) updates[base + 'progress'] = Math.max(0, Math.min(100, Number(patch.progress) || 0));
+    if (patch.predecessorIds !== undefined) {
+      const oldP = Object.keys(cur.predecessorIds || {});
+      const newP = _asIdMap(patch.predecessorIds);
+      if (newP[id]) throw new Error('A task cannot depend on itself.');
+      updates[base + 'predecessorIds'] = Object.keys(newP).length ? newP : null;
+      oldP.forEach(p => { if (!newP[p]) updates['planning/dependents/' + p + '/' + id] = null; });
+      Object.keys(newP).forEach(p => { updates['planning/dependents/' + p + '/' + id] = true; });
+    }
+    if (!Object.keys(updates).length) return;
+    updates[base + 'lastBy'] = me.uid; updates[base + 'lastAt'] = fbServerTs;
+    await fbDB.ref().update(updates);
+    _audit2('plan.task.update', base, null, patch);
+  }
+
+  async function deletePlanTask(id) {
+    _need('planner'); id = _safeKey(id);
+    const cur = (await fbDB.ref('planning/tasks/' + id).once('value')).val();
+    if (!cur) return;
+    const dependents = (await fbDB.ref('planning/dependents/' + id).once('value')).val() || {};
+    if (Object.keys(dependents).length) {
+      throw new Error('Cannot delete: ' + Object.keys(dependents).length + ' task(s) depend on this one. Re-link them first.');
+    }
+    const updates = { ['planning/tasks/' + id]: null, ['planning/dependents/' + id]: null, ['planning/baselines/' + id]: null };
+    Object.keys(cur.predecessorIds || {}).forEach(p => { updates['planning/dependents/' + p + '/' + id] = null; });
+    await fbDB.ref().update(updates);
+    _audit2('plan.task.delete', 'planning/tasks/' + id, cur, null);
+  }
+
+  /** Freeze the current start/end of EVERY task as the baseline (admin). */
+  async function setPlanBaseline() {
+    _need('all'); const me = _me();
+    const snap = (await fbDB.ref('planning/tasks').once('value')).val() || {};
+    const updates = {};
+    Object.entries(snap).forEach(([id, t]) => {
+      updates['planning/baselines/' + id] = { start: t.start, end: t.end, setBy: me.uid, setAt: fbServerTs };
+    });
+    if (!Object.keys(updates).length) throw new Error('No tasks to baseline.');
+    await fbDB.ref().update(updates);
+    _audit2('plan.baseline.set', 'planning/baselines', null, { count: Object.keys(updates).length });
+    _notify2('planner', 'Baseline saved', Object.keys(updates).length + ' tasks frozen as baseline');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  DOCUMENTS — metadata in RTDB, binaries in Firebase Storage
+  // ─────────────────────────────────────────────────────────────
+  async function addDocument(doc) {
+    _need(); const me = _me();   // any signed-in role may file documents
+    const ref = fbDB.ref('documents').push();
+    const v1 = ref.child('versions').push().key;
+    await ref.set({
+      title:    _reqStr(doc.title, 'Document title', 200),
+      category: String(doc.category || 'General').slice(0, 60),
+      module:   String(doc.module || 'general').toLowerCase(),
+      currentVersion: v1,
+      status: 'active',
+      by: me.uid, byName: me.name, ts: fbServerTs,
+      versions: {
+        [v1]: {
+          fileURL: _reqStr(doc.fileURL, 'File URL', 2000),
+          fileName: String(doc.fileName || 'file').slice(0, 200),
+          size: Number(doc.size) || 0, note: String(doc.note || 'Initial upload').slice(0, 300),
+          by: me.uid, byName: me.name, ts: fbServerTs
+        }
+      }
+    });
+    _audit2('doc.add', 'documents/' + ref.key, null, { title: doc.title });
+    _notify2('general', 'Document filed', doc.title);
+    return { id: ref.key, versionId: v1 };
+  }
+
+  async function addDocumentVersion(docId, ver) {
+    _need(); const me = _me();
+    docId = _safeKey(docId);
+    const dRef = fbDB.ref('documents/' + docId);
+    if (!(await dRef.child('title').once('value')).exists()) throw new Error('Document not found.');
+    const vId = dRef.child('versions').push().key;
+    await fbDB.ref().update({
+      ['documents/' + docId + '/versions/' + vId]: {
+        fileURL: _reqStr(ver.fileURL, 'File URL', 2000),
+        fileName: String(ver.fileName || 'file').slice(0, 200),
+        size: Number(ver.size) || 0, note: String(ver.note || '').slice(0, 300),
+        by: me.uid, byName: me.name, ts: fbServerTs
+      },
+      ['documents/' + docId + '/currentVersion']: vId,
+      ['documents/' + docId + '/lastBy']: me.uid,
+      ['documents/' + docId + '/lastAt']: fbServerTs
+    });
+    _audit2('doc.version.add', 'documents/' + docId + '/versions/' + vId, null, { fileName: ver.fileName });
+    return { versionId: vId };
+  }
+
+  async function archiveDocument(docId) {
+    _need('all'); const me = _me();
+    await fbDB.ref().update({
+      ['documents/' + _safeKey(docId) + '/status']: 'archived',
+      ['documents/' + _safeKey(docId) + '/lastBy']: me.uid,
+      ['documents/' + _safeKey(docId) + '/lastAt']: fbServerTs
+    });
+    _audit2('doc.archive', 'documents/' + docId, null, { status: 'archived' });
+  }
+
+  Object.assign(api, {
+    // Procurement & vendors
+    addVendor, updateVendor, archiveVendor,
+    createPO, addPOLineItem, deletePOLineItem, updatePOStatus,
+    PO_FLOW,
+    // Inventory
+    addInventoryItem, updateInventoryItem, addStockMovement, recordTransfer,
+    // Planning
+    addPlanTask, updatePlanTask, deletePlanTask, setPlanBaseline,
+    // Documents
+    addDocument, addDocumentVersion, archiveDocument
+  });
+
+})(window);

@@ -1,0 +1,158 @@
+'use strict';
+// =============================================================
+//  storage.js  —  Firebase Storage uploads (replaces base64 in DB)
+//
+//  v8 stored photos as data:image/png;base64,… inside the database.
+//  A 2 MB photo became a 2 MB string sitting on every device's
+//  realtime listener. Demo dies under three observations.
+//
+//  Here, every upload returns a downloadURL — short text — that
+//  goes into the DB instead.
+//
+//  Public surface (window.storage):
+//    storage.uploadHseImage(file)       → Promise<{url, path}>
+//    storage.uploadItcMap(itcId, file)  → Promise<{url, path}>
+//    storage.uploadPodImage(file)       → Promise<{url, path}>
+//    storage.deleteByPath(path)         → Promise<void>
+// =============================================================
+
+(function (global) {
+
+  const MAX = 5 * 1024 * 1024;
+  const OK_TYPES = /^image\/(png|jpe?g|webp|gif)$/i;
+
+  function _validate(file) {
+    if (!file) throw new Error('No file provided.');
+    if (!OK_TYPES.test(file.type)) throw new Error('Only PNG, JPG, WebP, or GIF images are accepted.');
+    if (file.size > MAX) throw new Error('Image too large (max 5 MB).');
+  }
+
+  function _ext(file) {
+    const m = /\.([a-z0-9]+)$/i.exec(file.name || '');
+    if (m) return m[1].toLowerCase();
+    if (file.type === 'image/png')  return 'png';
+    if (file.type === 'image/jpeg') return 'jpg';
+    if (file.type === 'image/webp') return 'webp';
+    if (file.type === 'image/gif')  return 'gif';
+    return 'bin';
+  }
+
+  function _todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           String(d.getDate()).padStart(2,'0');
+  }
+
+  /**
+   * Internal upload primitive.
+   * @param {string} path  Storage path
+   * @param {File}   file  the browser File object
+   * @param {(pct:number)=>void} [onProgress]  optional 0..100
+   * @returns {Promise<{url:string, path:string}>}
+   */
+  function _upload(path, file, onProgress) {
+    _validate(file);
+    // NOTE: this app uses a demo password gate, not Firebase Auth, so
+    // uploads are permitted for anonymous users too (POD submission is
+    // public by spec). Storage rules still enforce the 5 MB / image-only
+    // limits server-side.
+
+    const ref = fbStorage.ref(path);
+    const task = ref.put(file, { contentType: file.type });
+
+    return new Promise((resolve, reject) => {
+      task.on('state_changed',
+        snap => {
+          if (onProgress && snap.totalBytes) {
+            onProgress(Math.round(snap.bytesTransferred * 100 / snap.totalBytes));
+          }
+        },
+        err => reject(err),
+        async () => {
+          try {
+            const url = await ref.getDownloadURL();
+            resolve({ url, path });
+          } catch (e) { reject(e); }
+        }
+      );
+    });
+  }
+
+  function uploadHseImage(file, onProgress) {
+    const id = ((auth.current() || {}).uid || 'anon') + '_' + Date.now() + '.' + _ext(file);
+    return _upload('hse/' + _todayISO() + '/' + id, file, onProgress);
+  }
+
+  function uploadItcMap(itcId, file, onProgress) {
+    if (!/^ITC-\d+$/.test(itcId)) throw new Error('Bad ITC id');
+    const id = Date.now() + '.' + _ext(file);
+    return _upload('itc/' + itcId + '/maps/' + id, file, onProgress);
+  }
+
+  function uploadPodImage(file, onProgress) {
+    const id = ((auth.current() || {}).uid || 'anon') + '_' + Date.now() + '.' + _ext(file);
+    return _upload('pod/' + _todayISO() + '/' + id, file, onProgress);
+  }
+
+  /**
+   * Generic sub-activity photo upload (Solar / WTG progress photos).
+   * Path: subphotos/{module}/{ownerId}/{ts}.{ext}
+   */
+  function uploadSubPhoto(module, ownerId, file, onProgress) {
+    const mod = String(module || 'misc').replace(/[^a-z0-9_-]/gi, '_').slice(0, 20);
+    const own = String(ownerId || 'x').replace(/[^a-z0-9_-]/gi, '_').slice(0, 40);
+    const id = Date.now() + '.' + _ext(file);
+    return _upload('subphotos/' + mod + '/' + own + '/' + id, file, onProgress);
+  }
+
+  async function deleteByPath(path) {
+    if (!auth.current()) throw new Error('Not signed in.');
+    await fbStorage.ref(path).delete();
+  }
+
+  global.storage = { uploadHseImage, uploadItcMap, uploadPodImage, uploadSubPhoto, deleteByPath };
+
+})(window);
+
+// ═══════════════════════════════════════════════════════════════
+//  storage.js — EXTENSION BLOCK (v11): document + PO attachments.
+//  Broader type allow-list than images; 10 MB cap; still NEVER
+//  base64 into RTDB — only the download URL is stored.
+// ═══════════════════════════════════════════════════════════════
+(function (global) {
+  const st = global.storage;
+  if (!st || !st.uploadHseImage) { console.error('[storage-ext] storage missing'); return; }
+
+  const DOC_MAX = 10 * 1024 * 1024;
+  const DOC_TYPES = /^(image\/(png|jpe?g|webp|gif)|application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|text\/(csv|plain))$/i;
+
+  function _docValidate(file) {
+    if (!file) throw new Error('No file selected.');
+    if (!DOC_TYPES.test(file.type)) throw new Error('Allowed: PDF, Word, Excel, PowerPoint, CSV, TXT or image files.');
+    if (file.size > DOC_MAX) throw new Error('File too large (max 10 MB).');
+  }
+  function _key() { return Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+  function _cleanName(n) { return String(n || 'file').replace(/[^\w.\-]+/g, '_').slice(0, 120); }
+
+  function _put(path, file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const task = fbStorage.ref(path).put(file, { contentType: file.type });
+      task.on('state_changed',
+        s => { if (onProgress) onProgress(Math.round(s.bytesTransferred / s.totalBytes * 100)); },
+        reject,
+        async () => { try { resolve({ url: await task.snapshot.ref.getDownloadURL(), path }); } catch (e) { reject(e); } });
+    });
+  }
+
+  /** Project documents → /documents/{docKey}/{filename} in Storage. */
+  st.uploadDocument = function (file, onProgress) {
+    _docValidate(file);
+    return _put('documents/' + _key() + '/' + _cleanName(file.name), file, onProgress);
+  };
+  /** PO attachments → /po/{poKeyOrNew}/{filename}. */
+  st.uploadPoAttachment = function (file, onProgress) {
+    _docValidate(file);
+    return _put('po/' + _key() + '/' + _cleanName(file.name), file, onProgress);
+  };
+})(window);

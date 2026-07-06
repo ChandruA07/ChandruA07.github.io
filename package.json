@@ -1,0 +1,22 @@
+{
+  "name": "swppl-dashboard",
+  "version": "12.0.0",
+  "description": "SWPPL 140MW hybrid EPC dashboard \u2014 Supabase (Postgres) build. Static frontend; npm deps are TEST-ONLY.",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "bash tools/run-tests.sh",
+    "test:migration": "node tools/test-migration.js",
+    "test:rls": "bash tools/test-rls.sh",
+    "test:ui": "node tools/smoke-test.js",
+    "test:boot": "node tools/smoke-test-supabase.js",
+    "test:modules": "node tools/test-new-modules.js",
+    "seed:generate": "python3 tools/convert-seed.py firebase-seed.json > sql/seed.sql"
+  },
+  "private": true,
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "pg": "^8.22.0"
+  }
+}

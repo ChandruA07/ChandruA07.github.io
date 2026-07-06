@@ -1,0 +1,271 @@
+// tools/test-new-modules.js — v11 module tests.
+//
+// Boots the dashboard in jsdom with a STATEFUL in-memory Firebase RTDB
+// stub (unlike smoke-test.js's write-logger), then exercises the new
+// data-api mutators and renderers end-to-end:
+//
+//   • Vendor CRUD → PO create → line items → status workflow
+//     (including rejected illegal transitions and the draft-only
+//     line-item rule)
+//   • Inventory: item, ledger movements, computed stock, low-stock
+//     detection, atomic transfer pair
+//   • Planning: tasks, reverse dependents index consistency,
+//     critical-path longest-path computation, cycle detection,
+//     delete-blocked-by-dependents
+//   • Documents: create + version chain + currentVersion pointer
+//   • New views render; audit entries written for every mutation
+//
+// Run: cd <project> && npm i jsdom && node tools/test-new-modules.js
+
+const fs = require('fs');
+const path = require('path');
+const { JSDOM, VirtualConsole } = require('jsdom');
+
+const ROOT = path.join(__dirname, '..');
+let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+html = html.replace(/<script src="https?:\/\/[^"]+"><\/script>/g, '');
+html = html.replace('<script src="js/firebase.js"></script>',
+  '<script>window.__installStubs && window.__installStubs(window);</script>\n<script src="js/firebase.js"></script>');
+
+const vc = new VirtualConsole();
+vc.on('jsdomError', e => console.log('[jsdomError]', String(e && (e.stack||e.message)).slice(0, 400)));
+vc.on('error', (...a) => console.log('[console.error]', a.join(' ').slice(0,300)));
+
+const dom = new JSDOM(html, {
+  runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true,
+  url: 'file://' + ROOT + '/index.html', virtualConsole: vc,
+  beforeParse(window) { window.__installStubs = installStubs; window.addEventListener('error', e => console.log('[window.error]', e.message, e.filename, e.lineno)); }
+});
+
+// ── stateful RTDB stub ──────────────────────────────────────────
+function installStubs(window) {
+  const DB = {};   // plain object tree
+  window.__DB = DB;
+
+  function getAt(p) {
+    if (!p) return DB;
+    return p.split('/').filter(Boolean).reduce((n, k) => (n == null ? undefined : n[k]), DB);
+  }
+  function setAt(p, v) {
+    const parts = p.split('/').filter(Boolean);
+    if (!parts.length) return;
+    let n = DB;
+    for (let i = 0; i < parts.length - 1; i++) n = n[parts[i]] = n[parts[i]] || {};
+    if (v === null || v === undefined) delete n[parts[parts.length - 1]];
+    else n[parts[parts.length - 1]] = deepTs(v);
+  }
+  function deepTs(v) {
+    if (v && typeof v === 'object') {
+      if (v['.sv'] === 'timestamp') return Date.now();
+      const o = Array.isArray(v) ? [] : {};
+      for (const k in v) o[k] = deepTs(v[k]);
+      return o;
+    }
+    return v;
+  }
+  function mkSnap(val, key) {
+    return {
+      key, val: () => (val === undefined ? null : JSON.parse(JSON.stringify(val))),
+      exists: () => val !== undefined && val !== null,
+      forEach: cb => { if (val && typeof val === 'object') Object.keys(val).sort().forEach(k => cb(mkSnap(val[k], k))); }
+    };
+  }
+  let pushSeq = 0;
+  function mkRef(p) {
+    const self = {
+      _path: p, key: p.split('/').filter(Boolean).pop() || null,
+      child: c => mkRef((p ? p + '/' : '') + c),
+      push: v => {
+        const key = 'p' + String(++pushSeq).padStart(5, '0');
+        const r = mkRef((p ? p + '/' : '') + key); r.key = key;
+        if (v !== undefined) { setAt(r._path, v); return { catch: () => {}, key }; }
+        return r;
+      },
+      set: async v => setAt(p, v),
+      update: async patch => { for (const k in patch) setAt(k.startsWith('/') || !p ? k : p + '/' + k, patch[k]); },
+      remove: async () => setAt(p, null),
+      once: async () => mkSnap(getAt(p), self.key),
+      get: async () => mkSnap(getAt(p), self.key),
+      transaction: async fn => setAt(p, fn(getAt(p))),
+      on: (evt, cb) => cb,     // listeners not simulated; caches fed via direct calls
+      off: () => {},
+      orderByChild: () => self, orderByKey: () => self,
+      limitToLast: n => ({ ...self, once: async () => {
+        const v = getAt(p) || {};
+        const keys = Object.keys(v).sort().slice(-n);
+        const sub = {}; keys.forEach(k => sub[k] = v[k]);
+        return mkSnap(sub, self.key);
+      }, on: (e, cb) => cb, off: () => {} }),
+      toString: () => 'stub://' + p
+    };
+    return self;
+  }
+  window.firebase = {
+    initializeApp: () => {}, apps: [],
+    database: Object.assign(() => ({ ref: p => mkRef(p || '') }), { ServerValue: { TIMESTAMP: { '.sv': 'timestamp' } } }),
+    storage: () => ({ ref: p => ({ put: () => ({ on: (e, a, b, c) => c && c(), snapshot: { ref: { getDownloadURL: async () => 'https://stub/f' } } }) }) })
+    // NOTE: no firebase.auth here → auth.js should fall back to demo mode.
+  };
+  function ChartStub(c, cfg) { this.destroy = () => {}; this.update = () => {}; this.config = cfg; }
+  ChartStub.register = () => {}; window.Chart = ChartStub;
+  window.L = { map: () => ({ setView() { return this; }, remove() {}, invalidateSize() {}, on() {}, fitBounds() {}, flyTo() {}, addControl() {} }),
+    tileLayer: () => ({ addTo: () => {} }), marker: () => ({ bindPopup() { return this; }, addTo() { return this; }, on() { return this; } }),
+    layerGroup: () => ({ addTo() { return this; }, clearLayers() {}, addLayer() {} }),
+    divIcon: () => ({}), icon: () => ({}), polyline: () => ({ addTo() { return this; } }),
+    control: { layers: () => ({ addTo: () => {} }) }, Control: { extend: () => function () { return { addTo() {} }; } },
+    circleMarker: () => ({ bindPopup() { return this; }, addTo() { return this; } }), latLngBounds: () => ({}) };
+  window.HTMLCanvasElement.prototype.getContext = () => ({ canvas: {}, clearRect() {}, save() {}, restore() {} });
+  window.confirm = () => true;
+  window.alert = m => { window.__lastAlert = String(m); };
+}
+
+const { window } = dom;
+const fails = [];
+const ok = (c, m) => { if (c) console.log('  ✓', m); else { console.log('  ✗', m); fails.push(m); } };
+const tick = () => new Promise(r => setTimeout(r, 80));
+const rejects = async (fn, m) => { try { await fn(); ok(false, m + ' (did not throw)'); } catch (e) { ok(true, m + ' — "' + String(e.message).slice(0, 60) + '"'); } };
+
+function whenBooted(cb, tries=0) {
+  if (dom.window._appBooted || tries > 100) return cb();
+  setTimeout(() => whenBooted(cb, tries + 1), 100);
+}
+whenBooted(async () => {
+  try {
+    const d = window.document;
+    const DB = window.__DB;
+
+    console.log('\n1. Boot, new views, auth fallback…');
+    ok(window.auth && window.auth.MODE === 'demo', 'auth falls back to demo mode when Auth SDK absent (MODE=' + (window.auth && window.auth.MODE) + ')');
+    ['procurement', 'vendors', 'inventory', 'planning', 'documents', 'reports', 'audit'].forEach(v =>
+      ok(!!d.getElementById('view-' + v), 'view-' + v + ' injected'));
+    ['rndrProcurement', 'rndrVendors', 'rndrInventory', 'rndrPlanning', 'rndrDocuments', 'rndrReports', 'rndrAudit'].forEach(f =>
+      ok(typeof window[f] === 'function', f + ' defined'));
+    ['addVendor', 'createPO', 'updatePOStatus', 'addStockMovement', 'recordTransfer', 'addPlanTask', 'setPlanBaseline', 'addDocument', 'addDocumentVersion'].forEach(f =>
+      ok(typeof window.dataApi[f] === 'function', 'dataApi.' + f + ' exposed'));
+
+    // sign in as admin (demo mode) so canEdit passes for everything
+    await window.auth.login('site_user', 'Site@123');
+    ok(window.auth.current() && window.auth.current().isAdmin, 'demo admin sign-in works');
+
+    console.log('\n2. Vendors + PO workflow…');
+    const v1 = await window.dataApi.addVendor({ name: 'Krishna Electrical', category: 'Electrical', email: 'k@x.com', rating: 4 });
+    ok(v1 && v1.id && DB.vendors[v1.id].name === 'Krishna Electrical', 'vendor persisted at /vendors/{id}');
+    await rejects(() => window.dataApi.addVendor({ name: '' }), 'empty vendor name rejected');
+    await rejects(() => window.dataApi.addVendor({ name: 'X', email: 'not-an-email' }), 'bad vendor email rejected');
+
+    const po = await window.dataApi.createPO({ vendorId: v1.id, module: 'bop', description: 'Cabling scope' });
+    const poRec = DB.purchaseOrders[po.id];
+    ok(poRec && poRec.status === 'draft' && poRec.vendorName === 'Krishna Electrical', 'PO created as draft with DENORMALIZED vendorName');
+    await rejects(() => window.dataApi.createPO({ vendorId: 'nope' }), 'PO against unknown vendor rejected');
+
+    await window.dataApi.addPOLineItem(po.id, { itemName: '33kV cable', qty: 100, rate: 250 });
+    await window.dataApi.addPOLineItem(po.id, { itemName: 'Lugs', qty: 40, rate: 12.5 });
+    ok(Math.abs(DB.purchaseOrders[po.id].totalValue - (100 * 250 + 40 * 12.5)) < 0.01, 'header totalValue = Σ line items (transaction)');
+    await rejects(() => window.dataApi.addPOLineItem(po.id, { itemName: 'X', qty: 0, rate: 1 }), 'qty ≤ 0 rejected');
+
+    await rejects(() => window.dataApi.updatePOStatus(po.id, 'closed'), 'illegal draft→closed transition rejected');
+    await window.dataApi.updatePOStatus(po.id, 'approved');
+    ok(DB.purchaseOrders[po.id].status === 'approved', 'draft→approved OK');
+    await rejects(() => window.dataApi.addPOLineItem(po.id, { itemName: 'late', qty: 1, rate: 1 }), 'line-item edits blocked after draft');
+    await window.dataApi.updatePOStatus(po.id, 'delivered');
+    await window.dataApi.updatePOStatus(po.id, 'closed');
+    ok(DB.purchaseOrders[po.id].status === 'closed', 'full draft→approved→delivered→closed flow');
+    ok(Object.keys(DB.purchaseOrders[po.id].history || {}).length >= 4, 'status history recorded per transition');
+
+    console.log('\n3. Inventory ledger…');
+    const it = await window.dataApi.addInventoryItem({ name: 'MC4 Connector', unit: 'nos', minStock: 50 });
+    const today = window.dataApi.todayISO();
+    await window.dataApi.addStockMovement({ itemId: it.id, type: 'in', qty: 100, ref: 'PO-1' });
+    await window.dataApi.addStockMovement({ itemId: it.id, type: 'out', qty: 70, to: 'ITC-2' });
+    await rejects(() => window.dataApi.addStockMovement({ itemId: it.id, type: 'out', qty: -5 }), 'negative out-qty rejected');
+    await rejects(() => window.dataApi.addStockMovement({ itemId: it.id, type: 'in', qty: 5, date: '2099-01-01' }), 'future-dated movement rejected');
+    const dayNode = DB.inventory.movements[today];
+    ok(Object.keys(dayNode).length === 2, 'ledger is date-keyed append-only (2 rows today)');
+    // feed the renderer cache directly (listeners are not simulated) and check stock math
+    Object.entries(dayNode).forEach(([id, m]) => window.__invCaches.LEDGER.set(id, { ...m, id, date: today }));
+    const stock = window.__invCaches.computeStock();
+    ok(stock[it.id] === 30, 'computed stock = 100 in − 70 out = 30');
+    ok(30 < 50, '(item is below minStock=50 → low-stock alert case)');
+
+    const tr = await window.dataApi.recordTransfer({ itemId: it.id, qty: 10, from: 'Main Store', to: 'WTG Store' });
+    const rows = Object.values(DB.inventory.movements[tr.date]).filter(m => m.ref === 'TRANSFER');
+    ok(rows.length === 2 && rows.some(r => r.type === 'out') && rows.some(r => r.type === 'in'), 'transfer wrote atomic OUT+IN pair');
+    await rejects(() => window.dataApi.recordTransfer({ itemId: it.id, qty: 1, from: 'A', to: 'A' }), 'same-location transfer rejected');
+
+    console.log('\n4. Planning: DAG, dependents index, critical path…');
+    const tA = await window.dataApi.addPlanTask({ name: 'Foundations', start: '2026-07-01', end: '2026-07-10' });
+    const tB = await window.dataApi.addPlanTask({ name: 'Erection', start: '2026-07-11', end: '2026-07-25', predecessorIds: [tA.id] });
+    const tC = await window.dataApi.addPlanTask({ name: 'Cabling', start: '2026-07-05', end: '2026-07-08', predecessorIds: [tA.id] });
+    ok(DB.planning.dependents[tA.id][tB.id] === true && DB.planning.dependents[tA.id][tC.id] === true,
+      'reverse index /planning/dependents maintained atomically');
+    await rejects(() => window.dataApi.addPlanTask({ name: 'Bad', start: '2026-08-02', end: '2026-08-01' }), 'end<start rejected');
+    await rejects(() => window.dataApi.updatePlanTask(tB.id, { predecessorIds: [tB.id] }), 'self-dependency rejected');
+    await rejects(() => window.dataApi.deletePlanTask(tA.id), 'delete blocked while dependents exist');
+
+    Object.entries(DB.planning.tasks).forEach(([id, t]) => window.__planCaches.TASKS.set(id, t));
+    const cp = window.__planCaches.computeCriticalPath();
+    ok(!cp.cyclic, 'no false cycle detected');
+    ok(cp.critical.has(tA.id) && cp.critical.has(tB.id) && !cp.critical.has(tC.id),
+      'critical path = Foundations→Erection (longest), Cabling off-path');
+    await window.dataApi.setPlanBaseline();
+    ok(DB.planning.baselines[tA.id].start === '2026-07-01', 'baseline froze current dates');
+
+    console.log('\n5. Documents: version chain…');
+    const doc = await window.dataApi.addDocument({ title: 'SLD Rev-A', fileURL: 'https://stub/a.pdf', fileName: 'a.pdf', size: 1000 });
+    const v2 = await window.dataApi.addDocumentVersion(doc.id, { fileURL: 'https://stub/b.pdf', fileName: 'b.pdf', size: 2000, note: 'Rev-B' });
+    const dRec = DB.documents[doc.id];
+    ok(Object.keys(dRec.versions).length === 2 && dRec.currentVersion === v2.versionId, 'two versions; currentVersion points at latest');
+    await rejects(() => window.dataApi.addDocument({ title: 'x' }), 'document without fileURL rejected');
+
+    console.log('\n6. Audit + renderers + role gates…');
+    ok(Object.keys(DB.audit || {}).length >= 12, 'audit entry written per mutation (' + Object.keys(DB.audit || {}).length + ' entries)');
+    window.nav('procurement'); await tick();
+    ok(d.getElementById('proc-ct').innerHTML.length > 100, 'procurement view renders');
+    window.nav('vendors'); await tick();
+    ok(d.getElementById('vendors-ct').innerHTML.length > 100, 'vendors view renders');
+    window.nav('inventory'); await tick();
+    ok(d.getElementById('inv-ct').innerHTML.length > 100, 'inventory view renders');
+    window.nav('planning'); await tick();
+    ok(d.getElementById('plan-ct').innerHTML.length > 100, 'planning view renders (fallback Gantt, CDN stripped)');
+    window.nav('documents'); await tick();
+    ok(d.getElementById('docs-ct').innerHTML.length > 100, 'documents view renders');
+    window.nav('reports'); await tick();
+    ok(d.getElementById('reports-ct').innerHTML.length > 100, 'reports view renders');
+    window.nav('audit'); await tick();
+    ok(d.getElementById('audit-ct').innerHTML.includes('audit') || d.getElementById('audit-ct').innerHTML.length > 100, 'audit view renders');
+
+    // XSS spot-check: vendor name with HTML must land escaped
+    const evil = await window.dataApi.addVendor({ name: '<img src=x onerror=alert(1)>EvilCo' });
+    window.__procCaches.VND.set(evil.id, DB.vendors[evil.id]);
+    window.nav('vendors'); await tick(); window.rndrVendors();
+    const vhtml = d.getElementById('vendors-ct').innerHTML;
+    ok(!vhtml.includes('<img src=x') && vhtml.includes('&lt;img'), 'vendor name is HTML-escaped in the directory (XSS check)');
+
+    // role gate: non-matching role cannot call store mutators
+    await window.auth.logout();
+    await window.auth.login('solar_user', 'Solar@123');
+    await rejects(() => window.dataApi.addInventoryItem({ name: 'X' }), 'solar role blocked from store mutator (client gate; rules enforce server-side)');
+
+    console.log('\n7. PWA assets…');
+    ok(fs.existsSync(path.join(ROOT, 'manifest.json')), 'manifest.json present');
+    const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
+    ok(man.display === 'standalone' && man.icons.length >= 1, 'manifest installable (standalone + icons)');
+    const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    const missing = [...sw.matchAll(/'\.\/([^']+)'/g)].map(m => m[1]).filter(f => !fs.existsSync(path.join(ROOT, f)));
+    ok(missing.length === 0, 'every file in the SW pre-cache list exists on disk' + (missing.length ? ' — MISSING: ' + missing.join(',') : ''));
+    ok(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').includes('rel="manifest"'), 'index.html links the manifest');
+
+    console.log('\n8. Rules sanity (static)…');
+    const rules = JSON.parse(fs.readFileSync(path.join(ROOT, 'database.rules.json'), 'utf8')).rules;
+    ok(rules['.read'] === 'auth != null' && rules['.write'] === false, 'root: read requires auth, write default-deny');
+    ok(!!rules.vendors && !!rules.purchaseOrders && !!rules.inventory && !!rules.planning && !!rules.documents, 'rules cover every new node');
+    ok(rules.planning['.write'] === undefined, 'no planner-wide parent .write (baselines stay admin-only — cascade-safe)');
+    ok(String(rules.audit['.read']).includes("'admin'"), '/audit readable by admin only');
+    ok(String(rules.inventory.movements['$date']['$pushId']['.write']).includes('!data.exists()'), 'ledger rows are append-only at rule level');
+
+  } catch (e) {
+    ok(false, 'harness crashed: ' + e.message + '\n' + e.stack);
+  }
+  console.log(fails.length ? '\n❌ ' + fails.length + ' FAILURE(S)' : '\n✅ ALL NEW-MODULE TESTS PASSED');
+  process.exit(fails.length ? 1 : 0);
+});

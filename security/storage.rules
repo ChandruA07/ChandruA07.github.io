@@ -1,0 +1,61 @@
+rules_version = '2';
+// SWPPL Storage rules — v11 (Phase 6).
+// All reads require sign-in. Writes are size/type-limited per path.
+// Binary files NEVER go into RTDB — only these Storage paths.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // HSE observation photos — images only, 5 MB
+    match /hse/{date}/{file} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ITC map overlays — images only, 5 MB
+    match /itc/{itcId}/maps/{file} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // POD progress photos — images only, 5 MB
+    match /pod/{date}/{file} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Project documents — PDF/Office/CSV/text/images, 10 MB
+    match /documents/{docKey}/{file} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf'
+                       || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument..*')
+                       || request.resource.contentType == 'application/msword'
+                       || request.resource.contentType.matches('text/(csv|plain)'));
+    }
+
+    // PO attachments — same allow-list, 10 MB
+    match /po/{poKey}/{file} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf'
+                       || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument..*')
+                       || request.resource.contentType == 'application/msword'
+                       || request.resource.contentType.matches('text/(csv|plain)'));
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
